@@ -1,0 +1,14 @@
+path: C:/Users/COLORFUL/Downloads/rice_leaf_diseases_v5
+train: train/images
+val: val/images
+test: test/images
+
+nc: 7
+names:
+  0: bacterial_leaf_blight
+  1: brown_spot
+  2: healthy_rice_leaf
+  3: leaf_blast
+  4: leaf_scald
+  5: sheath_blight
+  6: tungro

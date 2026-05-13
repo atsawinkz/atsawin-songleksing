@@ -1,0 +1,93 @@
+==================================================================
+ สรุปการวิเคราะห์ Rice Leaf Diseases v5 และข้อสังเกตจากแผน Project
+==================================================================
+
+1. ภาพรวม Dataset
+------------------
+7 คลาส รวมทั้งหมด ~9,761 รูป:
+  - Bacterial Leaf Blight : 2,220 รูป
+  - Brown Spot            : 2,246 รูป
+  - Healthy Rice Leaf     :   653 รูป
+  - Leaf Blast            : 2,074 รูป
+  - Leaf Scald            :   628 รูป
+  - Sheath Blight         :   632 รูป
+  - Tungro                : 1,308 รูป
+
+2. โปรเจกต์นี้ใช้โมเดลอะไร?
+----------------------------
+- RT-DETR (Real-Time DEtection Transformer) สำหรับ Object Detection
+- ต้องตี Bounding Box ทุกรูป (ไม่ใช่แค่ภาพรวม classification)
+- ใช้ YOLO Format ผ่าน Roboflow สำหรับ Labeling
+- ใช้ Data Augmentation: Rotation, Brightness, Blur
+- ใช้ Gemini 2.5 Flash สำหรับ RAG + Pinecone Vector DB + n8n workflow
+
+3. ปัญหาที่พบจากแผน Project ที่ต้องแก้
+---------------------------------------
+3.1 วิธีการประเมินผลผิด (ร้ายแรง)
+  - ตารางที่ 3-2 ใช้ Likert Scale (5/4/3/2/1) ถามความเห็นคน
+    เพื่อวัด mAP, Precision, Recall, F1-Score ซึ่งเป็นค่าที่คำนวณ
+    จากโมเดลโดยตรง ไม่ใช่ความรู้สึกคน
+  - ต้องแก้เป็นตารางแสดงค่าตัวเลขที่วัดได้จริง
+
+3.2 ขนาด Labeling งานมหาศาล
+  - ~9,761 รูป ต้องตี Bounding Box ทุกรูป
+  - ต้องใช้ Roboflow ซึ่งเสียเวลาและค่าใช้จ่าย
+  - อาจเลือก Label คลาสละ ~500-800 รูป (~4K-5K รูป)
+    แล้วใช้ Augmentation ดึงเพิ่ม
+
+3.3 VRAM ไม่แน่พอ
+  - RTX 3060 Laptop GPU VRAM 6GB
+  - RT-DETR-L ใช้ VRAM ~4-6GB (input 640x640) หรือมากกว่า
+  - ต้องใช้ Mixed Precision Training หรือเลือก RT-DETR-R18 variant
+
+3.4 Missing Hyperparameters
+  - ไม่ระบุ Learning Rate, Batch Size, Epochs, Optimizer
+  - ไม่บอก Input Image Size
+  - ไม่บอกใช้ Pre-trained Weights หรือ Train from scratch
+  - ไม่บอก Scheduler / Warmup Strategy
+
+3.5 Extension รูปไม่统一
+  - มีทั้ง .jpg และ .JPG (ตัวใหญ่/ตัวเล็ก) ใน dataset
+  - ต้อง Unified ให้เป็น .jpg หรือ .png ก่อน preprocessing
+  - อาจมีรูปเสีย/corrupted ต้องตรวจสอบด้วย
+
+3.6 ค่าใช้จ่าย Cloud Service
+  - Pinecone เป็น Vector DB แบบ Cloud มีค่าใช้จ่าย
+  - Gemini API มี Rate Limit และ Cost
+  - ควรมีแผนสำรองแบบ Local (ChromaDB / Ollama) เผื่อ Budget ไม่พอ
+
+3.7 Knowledge Base จากกรมการข้าว
+  - ถ้าเป็น PDF scan / ภาพถ่าย จะ Extract ข้อความยาก
+  - Chunk Size 500 ตัวอักษรอาจสั้นไปสำหรับเนื้อหาวิชาการที่ยาว
+
+4. ปัญหา Dataset ที่มีผลต่อ Training RT-DETR
+----------------------------------------------
+4.1 Class Imbalance (มีผลมากกว่า Classification ปกติ)
+  - Healthy (653), Leaf Scald (628), Sheath Blight (632)
+    น้อยกว่า Bacterial Leaf Blight (2,220) และ Brown Spot (2,246) ~3 เท่า
+  - Object Detection ยิ่งอ่อนไหวต่อ Imbalance
+  - แนวทางแก้: Weighted Loss, Oversampling, Augmentation
+
+4.2 Visual Similarity (คู่ที่แยกยาก)
+  - Bacterial Leaf Blight <-> Leaf Scald
+    (รอยไหม้ขอบใบ คล้ายกันมาก)
+  - Brown Spot <-> Leaf Blast (ระยะแรก)
+    (เป็นจุดเล็กสีน้ำตาลเหมือนกัน)
+  - Tungro <-> Bacterial Leaf Blight
+    (ใบเหลือง-ส้มคล้ายกัน)
+  - โรคระยะเริ่มต้น <-> Healthy
+  - ส่งผลให้โมเดลมี Confusion สูงในคู่เหล่านี้
+
+4.3 จำนวนรวม ~10K รูป แค่พอใช้
+  - ควรใช้ Pre-trained Weights จาก COCO
+  - Augmentation สำคัญมาก (Rotation, Brightness, Blur, Flip, Crop)
+
+5. สรุป Actions ที่ต้องทำทันที
+-------------------------------
+1. แก้ตาราง 3-2 ใน Project — เปลี่ยนจาก Likert Scale
+   เป็น Performance Metrics Table
+2. ระบุ RT-DETR Variant, Input Size, Hyperparameters
+3. Unified นามสกุลไฟล์ .JPG -> .jpg
+4. วางแผน Label Bounding Box
+5. เตรียม Budget Pinecone/Gemini หรือหา Local Alternative
+6. ตรวจสอบคุณภาพรูปและรูปเสียก่อนเริ่มเทรน

@@ -1,0 +1,155 @@
+==================================================================
+ แพลนดำเนินงาน — Rice Disease LINE Chatbot (RT-DETR + RAG)
+==================================================================
+
+Phase 1: แก้ไขปริญญานิพนธ์ (Day 1)
+------------------------------------
+[ ] แก้ตาราง 3-2: เปลี่ยน Likert Scale เป็น Performance Metrics
+    (mAP, Precision, Recall, F1-Score: ค่าตัวเลข ไม่ใช่คะแนนความเห็น)
+[ ] ระบุ RT-DETR variant ให้ชัด (แนะนำ: RT-DETR-L หรือ RT-DETR-R18)
+[ ] ระบุ Hyperparameters:
+    - Input Image Size: 640x640
+    - Batch Size: 8 หรือ 16 (GPU RTX 2000 Ada มี VRAM 8GB-16GB สบายมาก)
+    - Learning Rate: 0.0001
+    - Optimizer: AdamW
+    - Epochs: 100
+    - Warmup Epochs: 5
+    - Scheduler: Cosine Annealing
+    - Mixed Precision (AMP): True
+[ ] ระบุ Pre-trained Weights: ใช้จาก COCO dataset
+[ ] เตรียมแผนสำรองค่าใช้จ่าย:
+    - Pinecone → ChromaDB (ฟรี)
+    - Gemini API → Ollama + llama3.2 (รัน local ฟรี)
+
+Phase 2: จัดการ Dataset (Day 1-2)
+-----------------------------------
+[x] 1. Unified .JPG -> .jpg (PowerShell):
+    Get-ChildItem -Recurse -Include "*.JPG" | Rename-Item -NewName { $_.Name -replace '\.JPG$','.jpg' }
+
+[x] 2. Check รูปเสีย:
+    import cv2, os
+    for root, _, files in os.walk(path):
+        for f in files:
+            if f.lower().endswith(('.jpg','.png')):
+                if cv2.imread(os.path.join(root,f)) is None:
+                    print(f'CORRUPTED: {f}')
+
+[x] 3. เช็คขนาด resolution ทุกรูป:
+    import cv2, os
+    sizes = {}
+    for root, _, files in os.walk(path):
+        for f in files:
+            if f.lower().endswith(('.jpg','.png')):
+                h,w = cv2.imread(os.path.join(root,f)).shape[:2]
+                sizes[(w,h)] = sizes.get((w,h),0) + 1
+    print(sorted(sizes.items(), key=lambda x:-x[1])[:10])
+
+[ ] 4. Export ไป Roboflow (สำหรับ Labeling + Augmentation)
+
+Phase 3: Labeling Bounding Box (Week 1-2)
+------------------------------------------
+[ ] สมัคร Roboflow (roboflow.com)
+[ ] สร้าง Project → Object Detection (YOLO v8/v9 format)
+[ ] อัพรูปทั้งหมด (~9,761 รูป)
+[ ] Label คลาสละ ~500-800 รูป = รวม ~4,000-5,000 รูป
+    (Healthy ไม่ต้องตีบ็อกซ์ ใช้ทั้งรูป)
+[ ] ตั้งค่า Data Augmentation ใน Roboflow:
+    - Rotation: ±15°
+    - Brightness: ±20%
+    - Blur: สุ่ม 0-2px
+    - Flip: Horizontal
+    - Crop: 0-10%
+[ ] Export → YOLO format → split Train/Val/Test (70/20/10)
+
+Phase 4: Train RT-DETR (Week 2-3)
+-----------------------------------
+[ ] ติดตั้ง ultralytics:
+    pip install ultralytics
+
+[ ] สร้าง dataset.yaml
+[ ] รันเทรน:
+    from ultralytics import RTDETR
+    model = RTDETR('rtdetr-l.pt')
+    model.train(
+        data='dataset.yaml',
+        epochs=100,
+        imgsz=640,
+        batch=8,
+        lr0=0.0001,
+        optimizer='AdamW',
+        warmup_epochs=5,
+        augment=True,
+        device=0,
+        amp=True,
+        cos_lr=True,
+        patience=15,
+        workers=8,
+        cache=True,
+    )
+
+[ ] Evaluate: mAP, Precision, Recall, F1-Score, Inference Time
+[ ] Export model → ONNX (สำหรับ deploy บน Jetson/n8n)
+
+Phase 5: RAG Pipeline + Knowledge Base (Week 2-3)
+---------------------------------------------------
+[ ] ดาวน์โหลดเอกสาร "องค์ความรู้เรื่องข้าว" จากกรมการข้าว
+[ ] Extract ข้อความจาก PDF (ใช้ PyMuPDF หรือ OCR ถ้าเป็น scan)
+[ ] Chunking: ขนาด 1000 ตัวอักษร, overlap 200 ตัวอักษร
+[ ] สร้าง Embedding (ใช้ sentence-transformers หรือ Gemini embedding)
+[ ] จัดเก็บใน Vector DB:
+    - ฟรี: ChromaDB (pip install chromadb)
+    - จ่ายตัง: Pinecone
+[ ] ทดสอบ Semantic Search → ดึงข้อมูลได้ถูกต้อง
+
+Phase 6: RAG + LLM Integration (Week 3-4)
+-------------------------------------------
+[ ] ติดตั้ง:
+    - ฟรี: Ollama + llama3.2 (หรือ gemma2)
+    - จ่ายตัง: Gemini API (Google AI Studio)
+[ ] สร้าง Prompt Template (ภาษาไทย):
+    - System: "คุณคือผู้เชี่ยวชาญด้านโรคข้าว..."
+    - Context + Question → Answer
+[ ] ทดสอบ Q&A กับ Knowledge Base ที่เตรียมไว้
+
+Phase 7: LINE + n8n Integration (Week 4-5)
+-------------------------------------------
+[ ] สมัคร LINE Official Account
+[ ] เปิด LINE Messaging API → get Channel Access Token
+[ ] ติดตั้ง n8n (docker หรือ n8n.cloud)
+[ ] สร้าง n8n Workflow:
+    LINE Webhook → Image Classification? → Image → RT-DETR Model
+                                          → Text → RAG → LLM → LINE Reply
+[ ] ตั้งค่า Rich Menu ใน LINE OA
+
+Phase 8: Testing + Evaluation (Week 5-6)
+-----------------------------------------
+[ ] Test Case (ตามตาราง 3-1):
+    1. วินิจฉัยจากภาพชัดเจน
+    2. สอบถามการรักษาด้วยข้อความ
+    3. สอบถามวิธีป้องกัน
+    4. วินิจฉัยจากอาการที่พิมพ์
+    5. ถามข้อมูลเฉพาะ (อัตราส่วนสารเคมี)
+    6. ถ่ายภาพไม่ชัด → fallback
+    7. ถามข้อมูลนอกฐานความรู้ → fallback
+    8. พิมพ์ข้อความนอก Intent → fallback
+[ ] เก็บผล RT-DETR Evaluation (mAP, Precision, Recall, F1-Score, Time)
+[ ] เก็บผล RAG Evaluation (Context Precision, Faithfulness, Answer Relevance)
+[ ] ทำแบบสอบถาม User Satisfaction (อันนี้ใช้ Likert Scale ได้)
+[ ] เขียนผลลัพธ์ใส่บทที่ 4
+
+Phase 9: ส่งเล่ม + Present (Week 7)
+-------------------------------------
+[ ] เขียนบทที่ 4 (ผลการดำเนินงาน)
+[ ] เขียนบทที่ 5 (สรุป + ปัญหาที่เจอ)
+[ ] ส่งอาจารย์ตรวจ
+[ ] แก้เล่ม
+[ ] ซ้อม Present
+[ ] Present โครงงาน
+
+==================================================================
+หมายเหตุสำคัญ:
+==================================================================
+- การ์ดจอ RTX 2000 Ada (VRAM 8GB หรือ 16GB) สามารถเทรนรุ่นใหญ่ RT-DETR-L ที่ imgsz 640 ได้สบาย ไม่ต้องลดสเปค
+- ขั้นตอนที่ลงเงิน: Pinecone (~$70/เดือน) + Gemini API (~pay-as-you-go)
+  ถ้าทำเป็น Prototype ส่งอาจารย์ → ChromaDB + Ollama ก็พอ
+- Labeling ใช้เวลามากที่สุด ควรเริ่มทันที
