@@ -1,189 +1,251 @@
-==================================================================
+====================================================================
  แพลนดำเนินงาน — Rice Disease LINE Chatbot (RT-DETR + RAG)
-==================================================================
+ อัปเดตล่าสุด: 14 พ.ค. 2569
+====================================================================
 
-Phase 1: แก้ไขปริญญานิพนธ์ (Day 1)
-------------------------------------
-[ ] 1. แก้ตาราง 3-2 และ 3-3: เปลี่ยน Likert Scale เป็น Performance Metrics
-    (mAP, Precision, Recall, F1-Score, RAGAS: ค่าตัวเลข ไม่ใช่คะแนนความเห็น)
-[ ] 2. ระบุสเปคฮาร์ดแวร์ให้ตรงกับเครื่องจริง (NVIDIA RTX 2000 Ada Generation, 16GB VRAM)
-[ ] 3. ปรับ Chunk Size ในบทที่ 3 ให้ตรงกับแผน (1000 ตัวอักษร, overlap 200)
-[ ] 4. ระบุ RT-DETR variant ให้ชัด (แนะนำ: RT-DETR-L)
-[ ] 5. ระบุ Hyperparameters:
-    - Input Image Size: 640x640
-    - Batch Size: 8 หรือ 16
-    - Learning Rate: 0.0001
-    - Optimizer: AdamW
-    - Epochs: 100
-    - Warmup Epochs: 5
-    - Scheduler: Cosine Annealing
-    - Mixed Precision (AMP): True
-[ ] 6. ระบุ Pre-trained Weights: ใช้จาก COCO dataset
-[ ] เตรียมแผนสำรองค่าใช้จ่าย:
-    - Pinecone → ChromaDB (ฟรี)
-    - Gemini API → Ollama + llama3.2 (รัน local ฟรี)
+สถาปัตยกรรมระบบ:
+  รูปภาพ → RT-DETR-L (Object Detection) → ระบุโรค
+  ข้อความ → RAG (Gemini 2.5 Flash + Vector DB) → คำตอบวิชาการ
+  ทั้งหมดเชื่อมผ่าน n8n Workflow → LINE Chatbot
 
-Phase 2: จัดการ Dataset (Day 1-2)
------------------------------------
-[x] 1. Unified .JPG -> .jpg (PowerShell):
-    Get-ChildItem -Recurse -Include "*.JPG" | Rename-Item -NewName { $_.Name -replace '\.JPG$','.jpg' }
+ฮาร์ดแวร์เทรน: NVIDIA RTX 2000 Ada Generation (16GB VRAM)
+ฮาร์ดแวร์ Deploy: NVIDIA Jetson AGX Orin (32GB)
 
-[x] 2. Check รูปเสีย:
-    import cv2, os
-    for root, _, files in os.walk(path):
-        for f in files:
-            if f.lower().endswith(('.jpg','.png')):
-                if cv2.imread(os.path.join(root,f)) is None:
-                    print(f'CORRUPTED: {f}')
+====================================================================
+ Phase 1: แก้ไขปริญญานิพนธ์
+ สถานะ: กำลังดำเนินการ | กำหนดเสร็จ: 16 พ.ค. 2569
+====================================================================
+[/] 1.1 แก้ตาราง 3-2 (RT-DETR Evaluation)
+    - เปลี่ยนจาก Likert Scale → ตารางแสดงค่าตัวเลข
+    - คอลัมน์: Metric | Value | หน่วย
+    - รายการ: mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1-Score, Inference Time (ms)
 
-[x] 3. เช็คขนาด resolution ทุกรูป:
-    import cv2, os
-    sizes = {}
-    for root, _, files in os.walk(path):
-        for f in files:
-            if f.lower().endswith(('.jpg','.png')):
-                h,w = cv2.imread(os.path.join(root,f)).shape[:2]
-                sizes[(w,h)] = sizes.get((w,h),0) + 1
-    print(sorted(sizes.items(), key=lambda x:-x[1])[:10])
+[/] 1.2 แก้ตาราง 3-3 (RAG Evaluation)
+    - เปลี่ยนจาก Likert Scale → ตารางแสดงค่า 0-1 ตาม RAGAS framework
+    - รายการ: Context Precision, Faithfulness, Answer Relevance, Context Recall
 
-[x] 4. Export ไป Roboflow (สำหรับ Labeling + Augmentation)
-    (หมายเหตุ: เตรียมข้อมูลภาพเรียบร้อย พร้อมอัปโหลด)
+[ ] 1.3 อัปเดตสเปคฮาร์ดแวร์ในบทที่ 1 (ข้อ 1.5.1)
+    - เปลี่ยน GPU: RTX 3060 Laptop → NVIDIA RTX 2000 Ada Generation (16GB VRAM)
+    - อัปเดต CPU ให้ตรงกับเครื่องจริง
 
-Phase 3: Labeling Bounding Box (Week 1-2)
-------------------------------------------
-[ ] สมัคร Roboflow (roboflow.com)
-[ ] สร้าง Project → Object Detection (YOLO v8/v9 format)
-[ ] อัพรูปทั้งหมด (~9,761 รูป)
-[ ] Label คลาสละ ~500-800 รูป = รวม ~4,000-5,000 รูป
+[ ] 1.4 ปรับ Chunk Size ในบทที่ 3 (ข้อ 2.2 Ingestion)
+    - เปลี่ยนจาก 500 ตัวอักษร → 1000 ตัวอักษร, overlap 200
 
-    ⚠️ กลยุทธ์ Healthy Class (สำคัญ):
-    - RT-DETR เป็น Object Detection → Healthy ไม่มีรอยโรคให้ตีกรอบ
-    - ใช้เป็น Negative Sample (ไม่ต้องตี bbox) เพื่อให้โมเดลเรียนรู้ว่า "ไม่มีรอยโรค"
-    - ในระบบจริง: ถ้า RT-DETR detect ไม่เจออะไร → ตอบกลับว่า "ใบข้าวปกติ"
-    - ใส่รูป Healthy ลงใน Train set เป็น background/negative images
+[ ] 1.5 ระบุ RT-DETR variant ให้ชัดในเล่ม
+    - ใช้ RT-DETR-L (Large) + Pre-trained จาก COCO dataset
+    - ระบุ Hyperparameters (อ้างอิง Project/train_rtdetr.py)
 
-    ⚠️ กลยุทธ์ Class Imbalance (สำคัญ):
-    - ปัญหา: คลาสมาก (BLB ~2,220, Brown Spot ~2,246) vs คลาสน้อย (Healthy ~653, Leaf Scald ~628)
-    - ต่างกัน ~3.5 เท่า → โมเดลจะ bias ไปทางคลาสที่มีข้อมูลเยอะ
-    - วิธีแก้:
-      1. ใช้ Oversampling คลาสที่น้อยใน Roboflow (Augmentation เพิ่มจำนวนรูป)
-      2. ตั้งค่า Augmentation ให้คลาสน้อยมี multiplier สูงกว่า (เช่น x3)
-      3. ลองปรับ cls_loss_gain ให้สูงขึ้น เพื่อเพิ่มน้ำหนัก Classification Loss
-      4. ดู Confusion Matrix หลังเทรนเสร็จรอบแรก เพื่อหาคู่โรคที่สับสนกัน
+====================================================================
+ Phase 2: จัดการ Dataset
+ สถานะ: เสร็จแล้ว ✅
+====================================================================
+[x] 2.1 Unified นามสกุลไฟล์ (.JPG → .jpg)
+[x] 2.2 ตรวจสอบรูปเสีย (0 ไฟล์เสีย)
+[x] 2.3 วิเคราะห์ Resolution (ส่วนใหญ่ 300x300, 224x224)
+[x] 2.4 เตรียมข้อมูลพร้อมอัปโหลด Roboflow
 
+สรุป Dataset:
+  - Bacterial Leaf Blight : 2,220 รูป
+  - Brown Spot            : 2,246 รูป
+  - Healthy Rice Leaf     :   653 รูป  ← คลาสน้อย
+  - Leaf Blast            : 2,074 รูป
+  - Leaf Scald            :   628 รูป  ← คลาสน้อย
+  - Sheath Blight         :   632 รูป  ← คลาสน้อย
+  - Tungro                : 1,308 รูป
+  รวม: ~9,761 รูป | 7 คลาส
+
+====================================================================
+ Phase 3: Labeling + Data Augmentation
+ สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 1-2
+====================================================================
+
+--- 3.1 ตั้งค่า Roboflow ---
+[ ] สมัคร Roboflow (roboflow.com) → เลือกแผน Free/Starter
+[ ] สร้าง Project → Object Detection → YOLO v8 format
+[ ] อัปโหลดรูปทั้งหมด (~9,761 รูป)
+
+--- 3.2 Labeling ---
+[ ] ตี Bounding Box คลาสละ ~500-800 รูป (รวม ~4,000-5,000 รูป)
+    คลาสที่ต้อง label (6 คลาสโรค):
+    - bacterial_leaf_blight
+    - brown_spot
+    - leaf_blast
+    - leaf_scald
+    - sheath_blight
+    - tungro
+
+    ⚠️ กลยุทธ์ Healthy Class:
+    - ไม่ต้องตี bbox (ไม่มีรอยโรคให้ตีกรอบ)
+    - ใส่เป็น Negative Sample / Background Image ใน Train set
+    - ในระบบจริง: ถ้า RT-DETR detect ไม่เจอ → ตอบ "ใบข้าวปกติ"
+
+--- 3.3 จัดการ Class Imbalance ---
+    ปัญหา: คลาสมาก ~2,200 vs คลาสน้อย ~630 (ต่างกัน 3.5 เท่า)
+
+[ ] ตั้ง Augmentation คลาสน้อย (Leaf Scald, Sheath Blight) ให้ multiplier x3
 [ ] ตั้งค่า Data Augmentation ใน Roboflow:
     - Rotation: ±15°
     - Brightness: ±20%
     - Blur: สุ่ม 0-2px
     - Flip: Horizontal
     - Crop: 0-10%
-    - คลาสน้อย (Healthy, Leaf Scald, Sheath Blight): เพิ่ม Augmentation x3
-[ ] Export → YOLO format → split Train/Val/Test (70/20/10)
 
-Phase 4: Train RT-DETR (Week 2-3)
------------------------------------
-[ ] ติดตั้ง ultralytics:
-    pip install ultralytics
+--- 3.4 Export ---
+[ ] Export → YOLO format → Split: Train 70% / Val 20% / Test 10%
+[ ] ดาวน์โหลดและวางไฟล์ตามโครงสร้าง:
+    rice_leaf_diseases_v5/
+    ├── train/images/  +  train/labels/
+    ├── val/images/    +  val/labels/
+    └── test/images/   +  test/labels/
 
-[ ] สร้าง dataset.yaml
-[ ] รันเทรน:
-    from ultralytics import RTDETR
-    model = RTDETR('rtdetr-l.pt')
-    model.train(
-        data='dataset.yaml',
-        epochs=100,
-        imgsz=640,
-        batch=8, # หรือ 16 ถ้า VRAM พอ
-        lr0=0.0001,
-        optimizer='AdamW',
-        warmup_epochs=5,
-        augment=True,
-        device=0,
-        amp=True,
-        cos_lr=True,
-        patience=15,
-        workers=8, # Optimized สำหรับ RTX 2000 Ada
-        cache=True, # Optimized สำหรับ RAM เยอะ
-    )
+====================================================================
+ Phase 4: Train + Evaluate RT-DETR
+ สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 2-3
+====================================================================
 
-[ ] Evaluate: mAP, Precision, Recall, F1-Score, Inference Time
-[ ] Export model → ONNX (สำหรับ deploy บน Jetson/n8n)
+--- 4.1 เตรียมสภาพแวดล้อม ---
+[ ] pip install ultralytics
+[ ] ตรวจสอบ CUDA: python -c "import torch; print(torch.cuda.is_available())"
+[ ] ยืนยัน dataset.yaml path ถูกต้อง (ดู Project/dataset.yaml)
 
-Phase 5: RAG Pipeline + Knowledge Base (Week 2-3)
----------------------------------------------------
+--- 4.2 เทรนโมเดล ---
+[ ] รัน Project/train_rtdetr.py
+    พารามิเตอร์สำคัญ:
+    - Model: RT-DETR-L (rtdetr-l.pt, pretrained COCO)
+    - imgsz: 640 | batch: 8 (ปรับเป็น 16 ถ้า VRAM พอ)
+    - epochs: 100 | patience: 15 (Early Stopping)
+    - optimizer: AdamW | lr0: 0.0001
+    - amp: True | cos_lr: True
+    - workers: 8 | cache: True
+
+--- 4.3 ประเมินผลหลังเทรน ---
+[ ] ดู Confusion Matrix → หาคู่โรคที่สับสนกัน (เช่น BLB vs Brown Spot)
+[ ] เช็ค Per-Class AP → ถ้าคลาสไหน AP ต่ำ ให้เพิ่มรูปหรือ Augmentation
+[ ] บันทึกค่า: mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1-Score
+[ ] วัด Inference Time (ms/รูป) บนเครื่องเทรน
+[ ] ปรับ Confidence Threshold จาก Precision-Recall Curve
+
+    🔁 ถ้าผลไม่ดี (mAP < 0.7):
+    - เพิ่ม epoch หรือปรับ lr0
+    - ลองเพิ่ม cls_loss_gain หรือ focal loss สำหรับคลาสน้อย
+    - เพิ่มรูปในคลาสที่ AP ต่ำ แล้วเทรนใหม่
+
+--- 4.4 Export โมเดล ---
+[ ] Export → ONNX format (สำหรับ deploy บน Jetson AGX Orin)
+[ ] ทดสอบ Inference Speed จริงบน Jetson
+
+====================================================================
+ Phase 5: RAG Pipeline (Knowledge Base + LLM)
+ สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 2-4
+====================================================================
+
+--- 5.1 เตรียม Knowledge Base ---
 [ ] ดาวน์โหลดเอกสาร "องค์ความรู้เรื่องข้าว" จากกรมการข้าว
-[ ] Extract ข้อความจาก PDF (ใช้ PyMuPDF หรือ OCR ถ้าเป็น scan)
-[ ] Chunking: ขนาด 1000 ตัวอักษร, overlap 200 ตัวอักษร
-[ ] สร้าง Embedding (ใช้ sentence-transformers หรือ Gemini embedding)
-[ ] จัดเก็บใน Vector DB:
-    - ฟรี: ChromaDB (pip install chromadb)
-    - จ่ายตัง: Pinecone
-[ ] ทดสอบ Semantic Search → ดึงข้อมูลได้ถูกต้อง
+    แหล่งข้อมูล: https://www.ricethailand.go.th/
+    เอกสารเป้าหมาย: คู่มือโรคข้าวและการป้องกันกำจัด
+[ ] Extract ข้อความจาก PDF
+    - PDF ปกติ: ใช้ PyMuPDF (pip install pymupdf)
+    - PDF scan: ใช้ Tesseract OCR
+[ ] Chunking: 1000 ตัวอักษร, overlap 200 ตัวอักษร
+[ ] ตรวจสอบคุณภาพ chunk (ไม่มีข้อความขาดหาย, บริบทครบ)
 
-Phase 6: RAG + LLM Integration (Week 3-4)
--------------------------------------------
-[ ] ติดตั้ง:
-    - ฟรี: Ollama + llama3.2 (หรือ gemma2)
-    - จ่ายตัง: Gemini API (Google AI Studio)
+--- 5.2 สร้าง Vector Database ---
+[ ] สร้าง Embedding จาก chunk
+    - ตัวเลือก: Gemini Embedding API หรือ sentence-transformers
+[ ] จัดเก็บใน Vector DB
+    - แนะนำเริ่มต้น: ChromaDB (ฟรี, รัน local)
+    - ถ้าต้องการ production: Pinecone
+[ ] ทดสอบ Semantic Search → ถามคำถามตัวอย่าง → ดึงข้อมูลถูกต้อง
+
+--- 5.3 เชื่อมต่อ LLM ---
+[ ] เลือก LLM:
+    - หลัก: Gemini 2.5 Flash (Google AI Studio, pay-as-you-go)
+    - สำรอง: Ollama + llama3.2 (รัน local ฟรี)
 [ ] สร้าง Prompt Template (ภาษาไทย):
-    - System: "คุณคือผู้เชี่ยวชาญด้านโรคข้าว..."
-    - Context + Question → Answer
-[ ] ทดสอบ Q&A กับ Knowledge Base ที่เตรียมไว้
+    System Prompt:
+    "คุณคือผู้เชี่ยวชาญด้านโรคข้าวจากกรมการข้าว
+     ตอบคำถามโดยอ้างอิงจาก Context ที่ให้เท่านั้น
+     ถ้าไม่พบข้อมูลใน Context ให้ตอบว่าไม่ทราบ
+     ห้ามสร้างข้อมูลเอง (No Hallucination)"
+[ ] ทดสอบ Q&A อย่างน้อย 20 คำถาม → ตรวจสอบความถูกต้อง
 
-Phase 7: LINE + n8n Integration (Week 4-5)
--------------------------------------------
-[ ] สมัคร LINE Official Account
-[ ] เปิด LINE Messaging API → get Channel Access Token
-[ ] ติดตั้ง n8n (docker หรือ n8n.cloud)
+====================================================================
+ Phase 6: LINE + n8n Integration
+ สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 4-5
+====================================================================
+
+--- 6.1 ตั้งค่า LINE ---
+[ ] สมัคร LINE Official Account (https://manager.line.biz/)
+[ ] เปิด LINE Messaging API → บันทึก Channel Access Token + Channel Secret
+[ ] ออกแบบ Rich Menu (ปุ่ม: ส่งรูปวินิจฉัย / ถามเรื่องโรค / วิธีป้องกัน)
+
+--- 6.2 ตั้งค่า n8n ---
+[ ] ติดตั้ง n8n:
+    - docker: docker run -it --rm -p 5678:5678 n8nio/n8n
+    - หรือใช้ n8n.cloud (มี free tier)
 [ ] สร้าง n8n Workflow:
-    LINE Webhook → Image Classification? → Image → RT-DETR Model
-                                          → Text → RAG → LLM → LINE Reply
-[ ] ตั้งค่า Rich Menu ใน LINE OA
-[ ] กำหนด Confidence Threshold ใน n8n Workflow:
-    - confidence > 0.5  → แสดงผลวินิจฉัยปกติ (ชื่อโรค + วิธีรักษา)
-    - confidence 0.3-0.5 → แจ้งว่า "ไม่แน่ใจ กรุณาถ่ายภาพใหม่ให้ชัดขึ้น"
-    - confidence < 0.3  → fallback "ไม่สามารถระบุรอยโรคได้"
-    - ไม่พบ detection เลย → ตอบกลับว่า "ใบข้าวปกติ ไม่พบรอยโรค"
+    LINE Webhook
+    ├── รับรูปภาพ → ส่งไป RT-DETR API → รับผลวินิจฉัย → LINE Reply
+    └── รับข้อความ → RAG Pipeline → LLM สร้างคำตอบ → LINE Reply
 
-Phase 8: Testing + Evaluation (Week 5-6)
------------------------------------------
-[ ] Test Case (ตามตาราง 3-1):
-    1. วินิจฉัยจากภาพชัดเจน
-    2. สอบถามการรักษาด้วยข้อความ
-    3. สอบถามวิธีป้องกัน
-    4. วินิจฉัยจากอาการที่พิมพ์
-    5. ถามข้อมูลเฉพาะ (อัตราส่วนสารเคมี)
-    6. ถ่ายภาพไม่ชัด → fallback
-    7. ถามข้อมูลนอกฐานความรู้ → fallback
-    8. พิมพ์ข้อความนอก Intent → fallback
-[ ] เก็บผล RT-DETR Evaluation (mAP, Precision, Recall, F1-Score, Time)
-[ ] เก็บผล RAG Evaluation (Context Precision, Faithfulness, Answer Relevance)
-[ ] ทำแบบสอบถาม User Satisfaction (อันนี้ใช้ Likert Scale ได้)
-[ ] เขียนผลลัพธ์ใส่บทที่ 4
+--- 6.3 Deploy RT-DETR เป็น API ---
+[ ] สร้าง REST API สำหรับ RT-DETR (FastAPI หรือ Flask)
+    - Endpoint: POST /predict → รับรูป → ส่งกลับ class + confidence
+    - Deploy บน Jetson AGX Orin หรือ Cloud Server
 
-Phase 9: ส่งเล่ม + Present (Week 7)
--------------------------------------
-[ ] เขียนบทที่ 4 (ผลการดำเนินงาน)
-[ ] เขียนบทที่ 5 (สรุป + ปัญหาที่เจอ)
-[ ] ส่งอาจารย์ตรวจ
-[ ] แก้เล่ม
+--- 6.4 กำหนด Confidence Threshold ---
+[ ] ตั้งค่า logic ใน n8n Workflow:
+    - confidence > 0.5  → แสดงผลวินิจฉัย (ชื่อโรค + สาเหตุ + วิธีรักษา)
+    - confidence 0.3-0.5 → "ไม่แน่ใจ กรุณาถ่ายภาพใหม่ให้ชัดขึ้น"
+    - confidence < 0.3  → "ไม่สามารถระบุรอยโรคได้ กรุณาลองใหม่"
+    - ไม่พบ detection   → "ใบข้าวปกติ ไม่พบรอยโรค"
+
+====================================================================
+ Phase 7: Testing + Evaluation
+ สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 5-6
+====================================================================
+
+--- 7.1 Functional Testing (ตามตาราง 3-1) ---
+[ ] Test 1: ส่งรูปโรคชัดเจน → ระบุชื่อโรค + วิธีรักษาถูกต้อง
+[ ] Test 2: พิมพ์ "โรคไหม้รักษายังไง" → แสดงวิธีรักษา + สารเคมี
+[ ] Test 3: ถาม "วิธีป้องกันโรคไหม้" → แสดงวิธีป้องกัน
+[ ] Test 4: อธิบายอาการไม่ระบุชื่อโรค → ระบบวิเคราะห์ได้
+[ ] Test 5: ถามอัตราส่วนสารเคมี → แสดงตัวเลขถูกต้อง
+[ ] Test 6: ส่งรูปไม่ชัด → fallback "ถ่ายภาพใหม่"
+[ ] Test 7: ถามนอกฐานข้อมูล → fallback "ไม่พบข้อมูล"
+[ ] Test 8: พิมพ์ข้อความนอก intent → fallback "ไม่เข้าใจ"
+
+--- 7.2 เก็บผลประเมิน ---
+[ ] RT-DETR Evaluation → บันทึก mAP, Precision, Recall, F1-Score, Inference Time
+[ ] RAG Evaluation (RAGAS) → บันทึก Context Precision, Faithfulness, Answer Relevance
+[ ] User Satisfaction → แบบสอบถาม Likert Scale 5 ระดับ
+    - กลุ่มตัวอย่าง: เกษตรกร/ผู้ใช้ทั่วไป จำนวน 30 คน
+    - หัวข้อ: ความสะดวก, ความถูกต้อง, ความเร็ว, ความเป็นมิตร, ความพึงพอใจรวม
+[ ] เขียนผลลัพธ์ทั้งหมดใส่บทที่ 4
+
+====================================================================
+ Phase 8: ส่งเล่ม + Present
+ สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 7
+====================================================================
+[ ] เขียนบทที่ 4 (ผลการดำเนินงาน + ตารางค่าตัวเลข + ภาพ Confusion Matrix)
+[ ] เขียนบทที่ 5 (สรุป + ข้อจำกัด + ข้อเสนอแนะ)
+[ ] ส่งอาจารย์ตรวจ → รับ Feedback → แก้ไข
+[ ] จัดทำวิดีโอสาธิตระบบ (Walkthrough)
 [ ] ซ้อม Present
 [ ] Present โครงงาน
-[ ] จัดทำ Walkthrough / วิดีโอสาธิตระบบ
 
-Phase 10: สิ่งที่ต้องตรวจสอบหลังเทรนรอบแรก (Post-Training Checklist)
-----------------------------------------------------------------------
-[ ] ดู Confusion Matrix → หาคู่โรคที่สับสนกัน (เช่น BLB vs Brown Spot)
-[ ] เช็ค Per-Class AP → ถ้าคลาสไหน AP ต่ำ ให้เพิ่ม Augmentation หรือเพิ่มรูป
-[ ] ปรับ Confidence Threshold จาก Precision-Recall Curve
-[ ] ทดสอบ Inference Speed จริงบนเครื่อง deploy (Jetson / n8n server)
-[ ] ถ้า mAP < 0.7 → พิจารณาเทรนเพิ่ม epoch หรือปรับ hyperparameters
-[ ] ถ้าคลาสน้อยยัง bias → ลองเพิ่ม cls_loss_gain หรือ focal loss
-
-==================================================================
-หมายเหตุสำคัญ:
-==================================================================
-- การ์ดจอ RTX 2000 Ada (VRAM 8GB หรือ 16GB) สามารถเทรนรุ่นใหญ่ RT-DETR-L ที่ imgsz 640 ได้สบาย ไม่ต้องลดสเปค
-- ขั้นตอนที่ลงเงิน: Pinecone (~$70/เดือน) + Gemini API (~pay-as-you-go)
-  ถ้าทำเป็น Prototype ส่งอาจารย์ → ChromaDB + Ollama ก็พอ
-- Labeling ใช้เวลามากที่สุด ควรเริ่มทันที
+====================================================================
+ หมายเหตุสำคัญ
+====================================================================
+1. Labeling ใช้เวลามากที่สุด (~2 สัปดาห์) → ควรเริ่มทันทีหลังแก้เล่มเสร็จ
+2. Phase 4 (Train) กับ Phase 5 (RAG) ทำพร้อมกันได้
+   เพราะใช้คนละทรัพยากร (GPU vs CPU/API)
+3. แผนสำรองค่าใช้จ่าย:
+   - Pinecone (~$70/เดือน) → ChromaDB (ฟรี, รัน local)
+   - Gemini API (pay-as-you-go) → Ollama + llama3.2 (ฟรี, รัน local)
+   - ถ้าทำ Prototype ส่งอาจารย์ → ใช้ตัวฟรีทั้งหมดได้
+4. การ์ดจอ RTX 2000 Ada (16GB VRAM) เทรน RT-DETR-L ที่ imgsz 640 ได้สบาย
+5. ไฟล์โค้ดอ้างอิง:
+   - Training Script: Project/train_rtdetr.py
+   - Dataset Config:  Project/dataset.yaml
+   - Dataset Check:   check_dataset.py
