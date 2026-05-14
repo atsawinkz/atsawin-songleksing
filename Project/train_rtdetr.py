@@ -17,4 +17,6 @@ results = model.train(
     amp=True,
     cos_lr=True,
     patience=15,
+    workers=8,
+    cache=True,
 )
