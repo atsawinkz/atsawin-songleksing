@@ -55,13 +55,29 @@ Phase 3: Labeling Bounding Box (Week 1-2)
 [ ] สร้าง Project → Object Detection (YOLO v8/v9 format)
 [ ] อัพรูปทั้งหมด (~9,761 รูป)
 [ ] Label คลาสละ ~500-800 รูป = รวม ~4,000-5,000 รูป
-    (Healthy ไม่ต้องตีบ็อกซ์ ใช้ทั้งรูป)
+
+    ⚠️ กลยุทธ์ Healthy Class (สำคัญ):
+    - RT-DETR เป็น Object Detection → Healthy ไม่มีรอยโรคให้ตีกรอบ
+    - ใช้เป็น Negative Sample (ไม่ต้องตี bbox) เพื่อให้โมเดลเรียนรู้ว่า "ไม่มีรอยโรค"
+    - ในระบบจริง: ถ้า RT-DETR detect ไม่เจออะไร → ตอบกลับว่า "ใบข้าวปกติ"
+    - ใส่รูป Healthy ลงใน Train set เป็น background/negative images
+
+    ⚠️ กลยุทธ์ Class Imbalance (สำคัญ):
+    - ปัญหา: คลาสมาก (BLB ~2,220, Brown Spot ~2,246) vs คลาสน้อย (Healthy ~653, Leaf Scald ~628)
+    - ต่างกัน ~3.5 เท่า → โมเดลจะ bias ไปทางคลาสที่มีข้อมูลเยอะ
+    - วิธีแก้:
+      1. ใช้ Oversampling คลาสที่น้อยใน Roboflow (Augmentation เพิ่มจำนวนรูป)
+      2. ตั้งค่า Augmentation ให้คลาสน้อยมี multiplier สูงกว่า (เช่น x3)
+      3. ลองปรับ cls_loss_gain ให้สูงขึ้น เพื่อเพิ่มน้ำหนัก Classification Loss
+      4. ดู Confusion Matrix หลังเทรนเสร็จรอบแรก เพื่อหาคู่โรคที่สับสนกัน
+
 [ ] ตั้งค่า Data Augmentation ใน Roboflow:
     - Rotation: ±15°
     - Brightness: ±20%
     - Blur: สุ่ม 0-2px
     - Flip: Horizontal
     - Crop: 0-10%
+    - คลาสน้อย (Healthy, Leaf Scald, Sheath Blight): เพิ่ม Augmentation x3
 [ ] Export → YOLO format → split Train/Val/Test (70/20/10)
 
 Phase 4: Train RT-DETR (Week 2-3)
@@ -123,6 +139,11 @@ Phase 7: LINE + n8n Integration (Week 4-5)
     LINE Webhook → Image Classification? → Image → RT-DETR Model
                                           → Text → RAG → LLM → LINE Reply
 [ ] ตั้งค่า Rich Menu ใน LINE OA
+[ ] กำหนด Confidence Threshold ใน n8n Workflow:
+    - confidence > 0.5  → แสดงผลวินิจฉัยปกติ (ชื่อโรค + วิธีรักษา)
+    - confidence 0.3-0.5 → แจ้งว่า "ไม่แน่ใจ กรุณาถ่ายภาพใหม่ให้ชัดขึ้น"
+    - confidence < 0.3  → fallback "ไม่สามารถระบุรอยโรคได้"
+    - ไม่พบ detection เลย → ตอบกลับว่า "ใบข้าวปกติ ไม่พบรอยโรค"
 
 Phase 8: Testing + Evaluation (Week 5-6)
 -----------------------------------------
@@ -150,11 +171,14 @@ Phase 9: ส่งเล่ม + Present (Week 7)
 [ ] Present โครงงาน
 [ ] จัดทำ Walkthrough / วิดีโอสาธิตระบบ
 
-Phase 10: ข้อมูลเพิ่มเติมจากการรีวิว (Review Recommendations)
----------------------------------------------------
-[ ] เพิ่มกลยุทธ์จัดการ Class Imbalance (Oversampling ใน Roboflow)
-[ ] กำหนด Confidence Threshold ใน n8n Workflow (เช่น > 0.4)
-[ ] เพิ่ม Logic แยกคลาส Healthy (ถ้าโมเดล Detect ไม่เจอ → ตอบ "ใบข้าวปกติ")
+Phase 10: สิ่งที่ต้องตรวจสอบหลังเทรนรอบแรก (Post-Training Checklist)
+----------------------------------------------------------------------
+[ ] ดู Confusion Matrix → หาคู่โรคที่สับสนกัน (เช่น BLB vs Brown Spot)
+[ ] เช็ค Per-Class AP → ถ้าคลาสไหน AP ต่ำ ให้เพิ่ม Augmentation หรือเพิ่มรูป
+[ ] ปรับ Confidence Threshold จาก Precision-Recall Curve
+[ ] ทดสอบ Inference Speed จริงบนเครื่อง deploy (Jetson / n8n server)
+[ ] ถ้า mAP < 0.7 → พิจารณาเทรนเพิ่ม epoch หรือปรับ hyperparameters
+[ ] ถ้าคลาสน้อยยัง bias → ลองเพิ่ม cls_loss_gain หรือ focal loss
 
 ==================================================================
 หมายเหตุสำคัญ:
