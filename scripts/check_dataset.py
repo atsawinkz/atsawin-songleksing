@@ -1,7 +1,7 @@
 from PIL import Image
 import os
 
-path = r"c:\Users\COLORFUL\Downloads\rice_leaf_diseases_v5"
+path = r"c:\Users\COLORFUL\Documents\rice_leaf_diseases\data\raw"
 
 corrupted_files = []
 sizes = {}

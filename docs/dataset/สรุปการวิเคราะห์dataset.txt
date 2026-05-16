@@ -1,96 +1,101 @@
 ==================================================================
  สรุปการวิเคราะห์ Rice Leaf Diseases (Dataset ปัจจุบัน)
- อัปเดตล่าสุด: 16 พ.ค. 2569
+ อัปเดตล่าสุด: 16 พ.ค. 2568
 ==================================================================
 
 1. ภาพรวม Dataset
 ------------------
 6 คลาส รวมทั้งหมด 3,829 รูป:
-  - Bacterial Leaf Blight : 636 รูป
-  - Brown Spot            : 646 รูป
-  - Healthy Rice Leaf     : 653 รูป
-  - Leaf Blast            : 634 รูป
-  - Leaf Scald            : 628 รูป
-  - Sheath Blight         : 632 รูป
+  - Bacterial Leaf Blight : 636 รูป  (16.6%)
+  - Brown Spot            : 646 รูป  (16.9%)
+  - Healthy Rice Leaf     : 653 รูป  (17.1%)
+  - Leaf Blast            : 634 รูป  (16.6%)
+  - Leaf Scald            : 628 รูป  (16.4%)
+  - Sheath Blight         : 632 รูป  (16.5%)
 
 หมายเหตุ: คลาส Tungro ถูกนำออกจาก dataset ในการอัปเดตครั้งนี้
-นามสกุลไฟล์: .jpg ทั้งหมด (ไม่มีปัญหา .JPG ผสม)
+นามสกุลไฟล์: .jpg ทั้งหมด — ตรวจสอบแล้ว ไม่พบไฟล์เสีย (corrupted)
 
-2. โปรเจกต์นี้ใช้โมเดลอะไร?
-----------------------------
+ความละเอียดรูปภาพที่พบใน Dataset (จาก check_dataset.py):
+  - 224x224   : 2,931 รูป  (ส่วนใหญ่ — ขนาดมาตรฐานสำหรับโมเดล)
+  - 1600x1200 :   787 รูป
+  - 4000x3000 :    37 รูป
+  - 2160x3840 :    17 รูป
+  - 2448x3264 :    15 รูป
+  - อื่นๆ     :    ~13 รูป
+
+
+2. สถานะ Class Balance
+-----------------------
+Dataset ชุดนี้มีความสมดุลสูงมาก — แต่ละคลาสมีจำนวนใกล้เคียงกัน
+(ต่างกันสูงสุดเพียง 25 รูป ระหว่าง Leaf Scald 628 กับ Healthy 653)
+
+ปัญหา Class Imbalance รุนแรงที่เคยมีในชุดข้อมูลเก่า (บางคลาสมี 2,000+)
+ได้รับการแก้ไขแล้วในชุดข้อมูลปัจจุบัน
+
+
+3. โปรเจกต์นี้ใช้โมเดลอะไร?
+-----------------------------
 - RT-DETR (Real-Time DEtection Transformer) สำหรับ Object Detection
 - ต้องตี Bounding Box ทุกรูป (ไม่ใช่แค่ภาพรวม classification)
 - ใช้ YOLO Format ผ่าน Roboflow สำหรับ Labeling
-- ใช้ Data Augmentation: Rotation, Brightness, Blur
+- ใช้ Data Augmentation: Rotation, Brightness, Blur, Flip, Crop
 - ใช้ Gemini 2.5 Flash สำหรับ RAG + Pinecone Vector DB + n8n workflow
 
-3. ปัญหาที่พบจากแผน Project ที่ต้องแก้
----------------------------------------
-3.1 วิธีการประเมินผลผิด (ร้ายแรง)
-  - ตารางที่ 3-2 ใช้ Likert Scale (5/4/3/2/1) ถามความเห็นคน
-    เพื่อวัด mAP, Precision, Recall, F1-Score ซึ่งเป็นค่าที่คำนวณ
-    จากโมเดลโดยตรง ไม่ใช่ความรู้สึกคน
-  - ต้องแก้เป็นตารางแสดงค่าตัวเลขที่วัดได้จริง
 
-3.2 ขนาด Labeling งานมหาศาล
-  - ~9,761 รูป ต้องตี Bounding Box ทุกรูป
-  - ต้องใช้ Roboflow ซึ่งเสียเวลาและค่าใช้จ่าย
-  - อาจเลือก Label คลาสละ ~500-800 รูป (~4K-5K รูป)
-    แล้วใช้ Augmentation ดึงเพิ่ม
-
-3.3 VRAM ไม่แน่พอ
-  - RTX 3060 Laptop GPU VRAM 6GB
-  - RT-DETR-L ใช้ VRAM ~4-6GB (input 640x640) หรือมากกว่า
-  - ต้องใช้ Mixed Precision Training หรือเลือก RT-DETR-R18 variant
-
-3.4 Missing Hyperparameters
-  - ไม่ระบุ Learning Rate, Batch Size, Epochs, Optimizer
-  - ไม่บอก Input Image Size
-  - ไม่บอกใช้ Pre-trained Weights หรือ Train from scratch
-  - ไม่บอก Scheduler / Warmup Strategy
-
-3.5 Extension รูปไม่统一
-  - มีทั้ง .jpg และ .JPG (ตัวใหญ่/ตัวเล็ก) ใน dataset
-  - ต้อง Unified ให้เป็น .jpg หรือ .png ก่อน preprocessing
-  - อาจมีรูปเสีย/corrupted ต้องตรวจสอบด้วย
-
-3.6 ค่าใช้จ่าย Cloud Service
-  - Pinecone เป็น Vector DB แบบ Cloud มีค่าใช้จ่าย
-  - Gemini API มี Rate Limit และ Cost
-  - ควรมีแผนสำรองแบบ Local (ChromaDB / Ollama) เผื่อ Budget ไม่พอ
-
-3.7 Knowledge Base จากกรมการข้าว
-  - ถ้าเป็น PDF scan / ภาพถ่าย จะ Extract ข้อความยาก
-  - Chunk Size 500 ตัวอักษรอาจสั้นไปสำหรับเนื้อหาวิชาการที่ยาว
-
-4. ปัญหา Dataset ที่มีผลต่อ Training RT-DETR
-----------------------------------------------
-4.1 Class Imbalance (มีผลมากกว่า Classification ปกติ)
-  - Healthy (653), Leaf Scald (628), Sheath Blight (632)
-    น้อยกว่า Bacterial Leaf Blight (2,220) และ Brown Spot (2,246) ~3 เท่า
-  - Object Detection ยิ่งอ่อนไหวต่อ Imbalance
-  - แนวทางแก้: Weighted Loss, Oversampling, Augmentation
+4. ปัญหาที่ยังต้องระวัง
+-------------------------
+4.1 ความละเอียดรูปไม่สม่ำเสมอ (สำคัญ)
+  - มีรูปหลายขนาดปะปนกัน (224x224, 1600x1200, 4000x3000 ฯลฯ)
+  - ต้อง Resize ทุกรูปให้เป็นขนาดเดียวกัน (640x640) ก่อนเทรน
+  - ควรใช้ letterbox resize เพื่อรักษา aspect ratio
 
 4.2 Visual Similarity (คู่ที่แยกยาก)
   - Bacterial Leaf Blight <-> Leaf Scald
     (รอยไหม้ขอบใบ คล้ายกันมาก)
   - Brown Spot <-> Leaf Blast (ระยะแรก)
     (เป็นจุดเล็กสีน้ำตาลเหมือนกัน)
-  - Tungro <-> Bacterial Leaf Blight
-    (ใบเหลือง-ส้มคล้ายกัน)
   - โรคระยะเริ่มต้น <-> Healthy
   - ส่งผลให้โมเดลมี Confusion สูงในคู่เหล่านี้
 
-4.3 จำนวนรวม ~10K รูป แค่พอใช้
-  - ควรใช้ Pre-trained Weights จาก COCO
-  - Augmentation สำคัญมาก (Rotation, Brightness, Blur, Flip, Crop)
+4.3 จำนวนรูปน้อยสำหรับ Object Detection
+  - ~3,829 รูป ค่อนข้างน้อยสำหรับ Object Detection
+  - ต้องพึ่ง Pre-trained Weights (COCO) และ Augmentation หนัก
+  - เป้าหมายหลังทำ Augmentation ควรได้ ~8,000-12,000 รูป
 
-5. สรุป Actions ที่ต้องทำทันที
--------------------------------
-1. แก้ตาราง 3-2 ใน Project — เปลี่ยนจาก Likert Scale
-   เป็น Performance Metrics Table
-2. ระบุ RT-DETR Variant, Input Size, Hyperparameters
-3. Unified นามสกุลไฟล์ .JPG -> .jpg
-4. วางแผน Label Bounding Box
-5. เตรียม Budget Pinecone/Gemini หรือหา Local Alternative
-6. ตรวจสอบคุณภาพรูปและรูปเสียก่อนเริ่มเทรน
+4.4 VRAM ข้อจำกัด
+  - RTX 3060 Laptop GPU VRAM 6GB
+  - แนะนำใช้ RT-DETR-R18 variant (เบากว่า RT-DETR-L)
+  - ต้องใช้ Mixed Precision Training (fp16)
+  - Batch Size ควรเริ่มที่ 8-16
+
+4.5 Missing Hyperparameters ใน Project Plan
+  - ไม่ระบุ Learning Rate, Batch Size, Epochs, Optimizer
+  - ไม่บอก Input Image Size
+  - ไม่บอกใช้ Pre-trained Weights หรือ Train from scratch
+  - ไม่บอก Scheduler / Warmup Strategy
+
+4.6 ปัญหาเดิม (แก้ไขแล้ว)
+  - วิธีการประเมินผล: เดิมใช้ Likert Scale วัด mAP/Precision/Recall
+    -> ต้องแก้เป็นตารางค่าตัวเลขจากโมเดลโดยตรง
+  - ค่าใช้จ่าย Cloud: Pinecone และ Gemini API มี Cost/Rate Limit
+    -> ควรมีแผนสำรองแบบ Local (ChromaDB / Ollama)
+
+
+5. สรุป Actions ที่ต้องทำ
+--------------------------
+เสร็จแล้ว:
+  [x] ตรวจสอบไฟล์เสีย -> ไม่พบ
+  [x] ยืนยันจำนวนไฟล์แต่ละคลาส
+  [x] ตัด Tungro ออกจาก dataset
+  [x] อัปเดตเอกสาร
+
+ต้องทำต่อ:
+  [ ] Resize รูปทั้งหมดให้เป็น 640x640 (letterbox)
+  [ ] วางแผนและเริ่ม Label Bounding Box ใน Roboflow
+  [ ] ระบุ RT-DETR Variant และ Hyperparameters ใน Project Plan
+  [ ] แก้ตาราง 3-2 ใน Project — เปลี่ยนจาก Likert Scale
+      เป็น Performance Metrics Table
+  [ ] เตรียม Budget Pinecone/Gemini หรือหา Local Alternative
+  [ ] ออกแบบ Augmentation Pipeline
+

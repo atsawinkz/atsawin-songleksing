@@ -1,6 +1,6 @@
 ====================================================================
  แพลนดำเนินงาน — Rice Disease LINE Chatbot (RT-DETR + RAG)
- อัปเดตล่าสุด: 14 พ.ค. 2569
+ อัปเดตล่าสุด: 16 พ.ค. 2568
 ====================================================================
 
 สถาปัตยกรรมระบบ:
@@ -41,7 +41,7 @@
 ====================================================================
 [x] 2.1 Unified นามสกุลไฟล์ (.JPG → .jpg)
 [x] 2.2 ตรวจสอบรูปเสีย (0 ไฟล์เสีย)
-[x] 2.3 วิเคราะห์ Resolution (ส่วนใหญ่ 300x300, 224x224)
+[x] 2.3 วิเคราะห์ Resolution (ส่วนใหญ่ 224x224 — มีขนาดอื่นปะปน: 1600x1200, 4000x3000 ฯลฯ)
 [x] 2.4 เตรียมข้อมูลพร้อมอัปโหลด Roboflow
 
 สรุป Dataset (อัปเดต 16 พ.ค. 2569):
@@ -54,10 +54,17 @@
   รวม: 3,829 รูป | 6 คลาส (ตัด Tungro ออก)
   Class Imbalance: ดีมาก — ทุกคลาสใกล้เคียงกัน (~628–653 รูป)
 
+--- 2.5 Preprocessing Pipeline (ก่อนอัปโหลด Roboflow) ---
+[ ] Resize รูปทั้งหมดให้เป็น 640x640 (ใช้ letterbox เพื่อรักษา aspect ratio)
+    - รูปที่เล็กกว่า 640x640 → pad ด้วยสีเทา
+    - รูปที่ใหญ่กว่า 640x640 → shrink แล้ว pad
+[ ] ตรวจสอบผลลัพธ์ก่อนอัปโหลด (sample ดูอย่างน้อย 20 รูปต่อคลาส)
+
 ====================================================================
  Phase 3: Labeling + Data Augmentation
  สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 1-2
 ====================================================================
+
 
 --- 3.1 ตั้งค่า Roboflow ---
 [ ] สมัคร Roboflow (roboflow.com) → เลือกแผน Free/Starter
@@ -91,7 +98,13 @@
     - Crop: 0-10%
     (แนะนำ multiplier x3 สำหรับทุกคลาสเพื่อเพิ่มข้อมูลให้พอเทรน)
 
---- 3.4 Export ---
+--- 3.4 Data Versioning (Roboflow) ---
+[ ] เปิดใช้งาน Version ใน Roboflow หลังจาก Label เสร็จแต่ละรอบ
+    - บันทึกเป็น Version (v1, v2, ...) ทุกครั้งที่มีการแก้ไข Bounding Box
+    - ใส่หมายเหตุว่าแก้อะไร (เช่น "Fixed BLB bbox, added 50 new images")
+[ ] Export เฉพาะ Version ที่ต้องการเสมอ (ไม่ export จาก draft)
+
+--- 3.5 Export ---
 [ ] Export → YOLO format → Split: Train 70% / Val 20% / Test 10%
 [ ] ดาวน์โหลดและวางไฟล์ตามโครงสร้าง:
     data/raw/
@@ -131,31 +144,40 @@
     - ลองเพิ่ม cls_loss_gain หรือ focal loss สำหรับคลาสน้อย
     - เพิ่มรูปในคลาสที่ AP ต่ำ แล้วเทรนใหม่
 
---- 4.4 Export โมเดล ---
+--- 4.4 บันทึก Checkpoint และ Experiment ---
+[ ] ผลเทรนจะอยู่ที่ rice_disease_rtdetr/exp1/ (ตาม train_rtdetr.py)
+    - best.pt  → โมเดลที่ดีที่สุด (ใช้งานจริง)
+    - last.pt  → checkpoint ล่าสุด (ใช้ resume ถ้าเทรนหยุดกลางคัน)
+[ ] บันทึกผลแต่ละ Experiment ลงใน CSV ด้วยมือ:
+    | exp | epochs | imgsz | batch | mAP@0.5 | mAP@0.5:0.95 | หมายเหตุ |
+    - ถ้าต้องการ Tracking อัตโนมัติ: เพิ่ม project= และ name= ใน train_rtdetr.py
+[ ] เก็บ best.pt ของแต่ละ Experiment ไว้แยกโฟลเดอร์ (อย่า overwrite)
+
+--- 4.5 Export โมเดล ---
 [ ] Export → ONNX format (สำหรับ deploy บน Jetson AGX Orin)
 [ ] ทดสอบ Inference Speed จริงบน Jetson
 
 ====================================================================
  Phase 5: RAG Pipeline (Knowledge Base + LLM)
- สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 2-4
+ สถานะ: กำลังดำเนินการ 🔄 | กำหนดเสร็จ: สัปดาห์ที่ 2-4
 ====================================================================
 
 --- 5.1 เตรียม Knowledge Base ---
-[ ] ดาวน์โหลดเอกสาร "องค์ความรู้เรื่องข้าว" จากกรมการข้าว
-    แหล่งข้อมูล: https://www.ricethailand.go.th/
-    เอกสารเป้าหมาย: คู่มือโรคข้าวและการป้องกันกำจัด
-[ ] Extract ข้อความจาก PDF
-    - PDF ปกติ: ใช้ PyMuPDF (pip install pymupdf)
-    - PDF scan: ใช้ Tesseract OCR
+[x] PDF เอกสารจากกรมการข้าวพร้อมแล้ว (Project/Chapter_01-03.pdf)
+[x] Extract ข้อความจาก PDF เสร็จแล้ว
+    - ใช้ PyMuPDF ผ่าน scripts/extract_pdf.py
+    - ผลลัพธ์: Chapter_01.txt, Chapter_02.txt, Chapter_03.txt
+    - ไฟล์อยู่ที่: Project/
 [ ] Chunking: 1000 ตัวอักษร, overlap 200 ตัวอักษร
+    - อ่านจาก Chapter_01-03.txt แล้วแบ่ง chunk
 [ ] ตรวจสอบคุณภาพ chunk (ไม่มีข้อความขาดหาย, บริบทครบ)
 
 --- 5.2 สร้าง Vector Database ---
 [ ] สร้าง Embedding จาก chunk
     - ตัวเลือก: Gemini Embedding API หรือ sentence-transformers
-[ ] จัดเก็บใน Vector DB
-    - แนะนำเริ่มต้น: ChromaDB (ฟรี, รัน local)
-    - ถ้าต้องการ production: Pinecone
+[ ] จัดเก็บใน ChromaDB (ฟรี, รัน local)
+    - บันทึกที่: Project/chroma_db/  ← run_ragas_eval.py ชี้มาที่นี่
+    - Collection name: rice_knowledge
 [ ] ทดสอบ Semantic Search → ถามคำถามตัวอย่าง → ดึงข้อมูลถูกต้อง
 
 --- 5.3 เชื่อมต่อ LLM ---
@@ -168,7 +190,20 @@
      ตอบคำถามโดยอ้างอิงจาก Context ที่ให้เท่านั้น
      ถ้าไม่พบข้อมูลใน Context ให้ตอบว่าไม่ทราบ
      ห้ามสร้างข้อมูลเอง (No Hallucination)"
-[ ] ทดสอบ Q&A อย่างน้อย 20 คำถาม → ตรวจสอบความถูกต้อง
+    ✅ Prompt นี้ถูก implement แล้วใน RAGAS_Evaluation/run_ragas_eval.py
+
+--- 5.4 RAGAS Evaluation ---
+[x] Golden Dataset พร้อมแล้ว: RAGAS_Evaluation/ragas_ground_truth.json
+    - 80 คำถาม-คำตอบ | 5 หมวด | 3 ระดับความยาก
+    - symptom_identification(17), treatment(16), prevention(15),
+      chemical(9), general(23)
+[x] สคริปต์ Evaluation พร้อมแล้ว: RAGAS_Evaluation/run_ragas_eval.py
+    - รองรับ: gemini / openai / ollama
+    - วัด: context_precision, faithfulness, answer_relevance, context_recall
+    - Output: RAGAS_Evaluation/output/eval_results.json + eval_scores.json
+[ ] รัน RAGAS หลังจาก ChromaDB พร้อม:
+    cd RAGAS_Evaluation
+    python run_ragas_eval.py --backend ollama   ← ใช้ฟรี ไม่ต้อง API Key
 
 ====================================================================
  Phase 6: LINE + n8n Integration

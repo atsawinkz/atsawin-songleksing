@@ -1,8 +1,8 @@
 import pymupdf
 import os
 
-project_dir = r"c:\Users\COLORFUL\Downloads\rice_leaf_diseases_v5\Project"
-output_dir = r"c:\Users\COLORFUL\Downloads\rice_leaf_diseases_v5\Project"
+project_dir = r"c:\Users\COLORFUL\Documents\rice_leaf_diseases\Project"
+output_dir = r"c:\Users\COLORFUL\Documents\rice_leaf_diseases\Project"
 
 for pdf_name in ["Chapter_01.pdf", "Chapter_02.pdf", "Chapter_03.pdf"]:
     pdf_path = os.path.join(project_dir, pdf_name)
