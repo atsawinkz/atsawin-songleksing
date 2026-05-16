@@ -55,6 +55,7 @@ def generate(llm, query, contexts, cfg):
 def run_pipeline(cfg):
     with open(cfg['GROUND_TRUTH_PATH'], 'r', encoding='utf-8') as f:
         data = json.load(f)
+    total = len(data['qa_pairs'])
     llm, emb = init_llm(cfg)
     results = []
     for i, qa in enumerate(data['qa_pairs']):
@@ -63,7 +64,7 @@ def run_pipeline(cfg):
         ctxs = retrieve(llm, emb, q, cfg)
         ans = generate(llm, q, ctxs, cfg)
         results.append({'question': q, 'ground_truth': gt, 'answer': ans, 'contexts': ctxs})
-        print('  [' + str(i+1) + '/80] ' + q[:40] + '...')
+        print('  [' + str(i+1) + '/' + str(total) + '] ' + q[:40] + '...')
     return results
 
 def run_eval(results):

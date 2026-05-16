@@ -44,15 +44,15 @@
 [x] 2.3 วิเคราะห์ Resolution (ส่วนใหญ่ 300x300, 224x224)
 [x] 2.4 เตรียมข้อมูลพร้อมอัปโหลด Roboflow
 
-สรุป Dataset:
-  - Bacterial Leaf Blight : 2,220 รูป
-  - Brown Spot            : 2,246 รูป
-  - Healthy Rice Leaf     :   653 รูป  ← คลาสน้อย
-  - Leaf Blast            : 2,074 รูป
-  - Leaf Scald            :   628 รูป  ← คลาสน้อย
-  - Sheath Blight         :   632 รูป  ← คลาสน้อย
-  - Tungro                : 1,308 รูป
-  รวม: ~9,761 รูป | 7 คลาส
+สรุป Dataset (อัปเดต 16 พ.ค. 2569):
+  - Bacterial Leaf Blight : 636 รูป
+  - Brown Spot            : 646 รูป
+  - Healthy Rice Leaf     : 653 รูป
+  - Leaf Blast            : 634 รูป
+  - Leaf Scald            : 628 รูป
+  - Sheath Blight         : 632 รูป
+  รวม: 3,829 รูป | 6 คลาส (ตัด Tungro ออก)
+  Class Imbalance: ดีมาก — ทุกคลาสใกล้เคียงกัน (~628–653 รูป)
 
 ====================================================================
  Phase 3: Labeling + Data Augmentation
@@ -61,18 +61,17 @@
 
 --- 3.1 ตั้งค่า Roboflow ---
 [ ] สมัคร Roboflow (roboflow.com) → เลือกแผน Free/Starter
-[ ] สร้าง Project → Object Detection → YOLO v8 format
-[ ] อัปโหลดรูปทั้งหมด (~9,761 รูป)
+[ ] สร้าง Project → Object Detection → YOLO format
+[ ] อัปโหลดรูปทั้งหมด (3,829 รูป | 6 คลาส)
 
 --- 3.2 Labeling ---
-[ ] ตี Bounding Box คลาสละ ~500-800 รูป (รวม ~4,000-5,000 รูป)
-    คลาสที่ต้อง label (6 คลาสโรค):
+[ ] ตี Bounding Box คลาสละ ~400-600 รูป (รวม ~2,400-3,600 รูป)
+    คลาสที่ต้อง label (5 คลาสโรค):
     - bacterial_leaf_blight
     - brown_spot
     - leaf_blast
     - leaf_scald
     - sheath_blight
-    - tungro
 
     ⚠️ กลยุทธ์ Healthy Class:
     - ไม่ต้องตี bbox (ไม่มีรอยโรคให้ตีกรอบ)
@@ -80,20 +79,22 @@
     - ในระบบจริง: ถ้า RT-DETR detect ไม่เจอ → ตอบ "ใบข้าวปกติ"
 
 --- 3.3 จัดการ Class Imbalance ---
-    ปัญหา: คลาสมาก ~2,200 vs คลาสน้อย ~630 (ต่างกัน 3.5 เท่า)
+    Dataset ใหม่: ทุกคลาสใกล้เคียงกันมาก (~628–653 รูป)
+    Class Imbalance ไม่ใช่ปัญหาหลักแล้ว ✅
+    แต่ยังควรทำ Augmentation เพื่อเพิ่มปริมาณข้อมูลโดยรวม
 
-[ ] ตั้ง Augmentation คลาสน้อย (Leaf Scald, Sheath Blight) ให้ multiplier x3
 [ ] ตั้งค่า Data Augmentation ใน Roboflow:
     - Rotation: ±15°
     - Brightness: ±20%
     - Blur: สุ่ม 0-2px
     - Flip: Horizontal
     - Crop: 0-10%
+    (แนะนำ multiplier x3 สำหรับทุกคลาสเพื่อเพิ่มข้อมูลให้พอเทรน)
 
 --- 3.4 Export ---
 [ ] Export → YOLO format → Split: Train 70% / Val 20% / Test 10%
 [ ] ดาวน์โหลดและวางไฟล์ตามโครงสร้าง:
-    rice_leaf_diseases_v5/
+    data/raw/
     ├── train/images/  +  train/labels/
     ├── val/images/    +  val/labels/
     └── test/images/   +  test/labels/
