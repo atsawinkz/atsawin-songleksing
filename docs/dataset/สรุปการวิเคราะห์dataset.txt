@@ -63,11 +63,11 @@ Dataset ชุดนี้มีความสมดุลสูงมาก �
   - ต้องพึ่ง Pre-trained Weights (COCO) และ Augmentation หนัก
   - เป้าหมายหลังทำ Augmentation ควรได้ ~8,000-12,000 รูป
 
-4.4 VRAM ข้อจำกัด
-  - RTX 3060 Laptop GPU VRAM 6GB
-  - แนะนำใช้ RT-DETR-R18 variant (เบากว่า RT-DETR-L)
-  - ต้องใช้ Mixed Precision Training (fp16)
-  - Batch Size ควรเริ่มที่ 8-16
+4.4 ฮาร์ดแวร์และการจัดการ VRAM
+  - NVIDIA RTX 2000 Ada Generation (16GB VRAM)
+  - VRAM 16GB เพียงพอสำหรับ RT-DETR-L (imgsz 640)
+  - สามารถขยาย Batch Size ได้ถึง 16-32 เพื่อให้เทรนเร็วขึ้น
+  - ยังแนะนำใช้ Mixed Precision Training (fp16) เพื่อประสิทธิภาพสูงสุด
 
 4.5 Missing Hyperparameters ใน Project Plan
   - ไม่ระบุ Learning Rate, Batch Size, Epochs, Optimizer
