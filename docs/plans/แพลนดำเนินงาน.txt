@@ -15,23 +15,23 @@
  Phase 1: แก้ไขปริญญานิพนธ์
  สถานะ: กำลังดำเนินการ | กำหนดเสร็จ: 16 พ.ค. 2569
 ====================================================================
-[/] 1.1 แก้ตาราง 3-2 (RT-DETR Evaluation)
+[x] 1.1 แก้ตาราง 3-2 (RT-DETR Evaluation)
     - เปลี่ยนจาก Likert Scale → ตารางแสดงค่าตัวเลข
     - คอลัมน์: Metric | Value | หน่วย
     - รายการ: mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1-Score, Inference Time (ms)
 
-[/] 1.2 แก้ตาราง 3-3 (RAG Evaluation)
+[x] 1.2 แก้ตาราง 3-3 (RAG Evaluation)
     - เปลี่ยนจาก Likert Scale → ตารางแสดงค่า 0-1 ตาม RAGAS framework
     - รายการ: Context Precision, Faithfulness, Answer Relevance, Context Recall
 
-[ ] 1.3 อัปเดตสเปคฮาร์ดแวร์ในบทที่ 1 (ข้อ 1.5.1)
+[x] 1.3 อัปเดตสเปคฮาร์ดแวร์ในบทที่ 1 (ข้อ 1.5.1)
     - เปลี่ยน GPU: RTX 3060 Laptop → NVIDIA RTX 2000 Ada Generation (16GB VRAM)
     - อัปเดต CPU ให้ตรงกับเครื่องจริง
 
-[ ] 1.4 ปรับ Chunk Size ในบทที่ 3 (ข้อ 2.2 Ingestion)
+[x] 1.4 ปรับ Chunk Size ในบทที่ 3 (ข้อ 2.2 Ingestion)
     - เปลี่ยนจาก 500 ตัวอักษร → 1000 ตัวอักษร, overlap 200
 
-[ ] 1.5 ระบุ RT-DETR variant ให้ชัดในเล่ม
+[x] 1.5 ระบุ RT-DETR variant ให้ชัดในเล่ม
     - ใช้ RT-DETR-L (Large) + Pre-trained จาก COCO dataset
     - ระบุ Hyperparameters (อ้างอิง Project/train_rtdetr.py)
 
