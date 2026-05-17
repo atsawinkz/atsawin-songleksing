@@ -66,38 +66,40 @@
  สถานะ: ยังไม่เริ่ม | กำหนดเสร็จ: สัปดาห์ที่ 1-2
 ====================================================================
 
-
 --- 3.1 ตั้งค่า Roboflow ---
-[ ] สมัคร Roboflow (roboflow.com) → เลือกแผน Free/Starter
-[ ] สร้าง Project → Object Detection → YOLO format
-[ ] อัปโหลดรูปทั้งหมด (3,829 รูป | 6 คลาส)
+[x] สมัคร Roboflow (roboflow.com) -> เลือกแผน Free/Starter
+[ ] สร้าง Project -> Object Detection -> YOLO format
+[ ] อัปโหลดรูปจาก data/processed/ (640x640 letterbox, 3,829 รูป | 6 คลาส)
+    สำคัญ: ตั้ง Roboflow Preprocessing -> Resize = "No Resize"
+    เพราะรูปถูก resize เป็น 640x640 มาแล้วจาก scripts/resize_dataset.py
 
 --- 3.2 Labeling ---
-[ ] ตี Bounding Box คลาสละ ~400-600 รูป (รวม ~2,400-3,600 รูป)
+[ ] ตี Bounding Box ทุกรูปในแต่ละคลาสโรค (รวม ~3,176 รูป)
     คลาสที่ต้อง label (5 คลาสโรค):
-    - bacterial_leaf_blight
-    - brown_spot
-    - leaf_blast
-    - leaf_scald
-    - sheath_blight
+    - bacterial_leaf_blight  : ~636 รูป
+    - brown_spot             : ~646 รูป
+    - leaf_blast             : ~634 รูป
+    - leaf_scald             : ~628 รูป
+    - sheath_blight          : ~632 รูป
 
-    ⚠️ กลยุทธ์ Healthy Class:
+    กลยุทธ์ Healthy Class (653 รูป):
     - ไม่ต้องตี bbox (ไม่มีรอยโรคให้ตีกรอบ)
     - ใส่เป็น Negative Sample / Background Image ใน Train set
-    - ในระบบจริง: ถ้า RT-DETR detect ไม่เจอ → ตอบ "ใบข้าวปกติ"
+    - ในระบบจริง: ถ้า RT-DETR detect ไม่เจอ -> ตอบ "ใบข้าวปกติ"
 
---- 3.3 จัดการ Class Imbalance ---
-    Dataset ใหม่: ทุกคลาสใกล้เคียงกันมาก (~628–653 รูป)
-    Class Imbalance ไม่ใช่ปัญหาหลักแล้ว ✅
+--- 3.3 Data Augmentation ---
+    Dataset ใหม่: ทุกคลาสใกล้เคียงกันมาก (~628-653 รูป)
+    Class Imbalance ไม่ใช่ปัญหาหลักแล้ว
     แต่ยังควรทำ Augmentation เพื่อเพิ่มปริมาณข้อมูลโดยรวม
 
 [ ] ตั้งค่า Data Augmentation ใน Roboflow:
-    - Rotation: ±15°
-    - Brightness: ±20%
+    - Rotation: +/-15 degrees
+    - Brightness: +/-20%
     - Blur: สุ่ม 0-2px
     - Flip: Horizontal
     - Crop: 0-10%
     (แนะนำ multiplier x3 สำหรับทุกคลาสเพื่อเพิ่มข้อมูลให้พอเทรน)
+    เป้าหมายหลัง Augmentation: ~9,000-12,000 รูป
 
 --- 3.4 Data Versioning (Roboflow) ---
 [ ] เปิดใช้งาน Version ใน Roboflow หลังจาก Label เสร็จแต่ละรอบ
@@ -105,13 +107,22 @@
     - ใส่หมายเหตุว่าแก้อะไร (เช่น "Fixed BLB bbox, added 50 new images")
 [ ] Export เฉพาะ Version ที่ต้องการเสมอ (ไม่ export จาก draft)
 
---- 3.5 Export ---
-[ ] Export → YOLO format → Split: Train 70% / Val 20% / Test 10%
-[ ] ดาวน์โหลดและวางไฟล์ตามโครงสร้าง:
-    data/raw/
-    ├── train/images/  +  train/labels/
-    ├── val/images/    +  val/labels/
-    └── test/images/   +  test/labels/
+--- 3.5 Export + อัปเดต Config ---
+[ ] Export -> YOLO format -> Split: Train 70% / Val 20% / Test 10%
+[ ] ดาวน์โหลดและวางไฟล์ในโฟลเดอร์ใหม่ data/labeled/:
+    data/labeled/
+    +-- train/images/  +  train/labels/
+    +-- val/images/    +  val/labels/
+    +-- test/images/   +  test/labels/
+
+    หมายเหตุ: ห้าม export ไปที่ data/raw/ เพราะเป็นรูปต้นฉบับ
+
+[ ] อัปเดต Project/dataset.yaml ให้ชี้ไปที่ data/labeled/:
+    path: C:/Users/COLORFUL/Documents/rice_leaf_diseases/data/labeled
+    train: train/images
+    val: val/images
+    test: test/images
+
 
 ====================================================================
  Phase 4: Train + Evaluate RT-DETR
