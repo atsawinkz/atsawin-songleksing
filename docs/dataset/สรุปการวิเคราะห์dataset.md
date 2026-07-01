@@ -1,10 +1,9 @@
-==================================================================
- สรุปการวิเคราะห์ Rice Leaf Diseases (Dataset ปัจจุบัน)
- อัปเดตล่าสุด: 16 พ.ค. 2568
-==================================================================
+# สรุปการวิเคราะห์ Rice Leaf Diseases (Dataset ปัจจุบัน)
+*อัปเดตล่าสุด: 16 พ.ค. 2568*
 
-1. ภาพรวม Dataset
-------------------
+
+
+## 1. ภาพรวม Dataset
 6 คลาส รวมทั้งหมด 3,829 รูป:
   - Bacterial Leaf Blight : 636 รูป  (16.6%)
   - Brown Spot            : 646 รูป  (16.9%)
@@ -25,8 +24,8 @@
   - อื่นๆ     :    ~13 รูป
 
 
-2. สถานะ Class Balance
------------------------
+
+## 2. สถานะ Class Balance
 Dataset ชุดนี้มีความสมดุลสูงมาก — แต่ละคลาสมีจำนวนใกล้เคียงกัน
 (ต่างกันสูงสุดเพียง 25 รูป ระหว่าง Leaf Scald 628 กับ Healthy 653)
 
@@ -34,8 +33,8 @@ Dataset ชุดนี้มีความสมดุลสูงมาก �
 ได้รับการแก้ไขแล้วในชุดข้อมูลปัจจุบัน
 
 
-3. โปรเจกต์นี้ใช้โมเดลอะไร?
------------------------------
+
+## 3. โปรเจกต์นี้ใช้โมเดลอะไร?
 - RT-DETR (Real-Time DEtection Transformer) สำหรับ Object Detection
 - ต้องตี Bounding Box ทุกรูป (ไม่ใช่แค่ภาพรวม classification)
 - ใช้ YOLO Format ผ่าน Roboflow สำหรับ Labeling
@@ -43,8 +42,8 @@ Dataset ชุดนี้มีความสมดุลสูงมาก �
 - ใช้ Gemini 2.5 Flash สำหรับ RAG + Pinecone Vector DB + n8n workflow
 
 
-4. ปัญหาที่ยังต้องระวัง
--------------------------
+
+## 4. ปัญหาที่ยังต้องระวัง
 4.1 ความละเอียดรูปไม่สม่ำเสมอ (สำคัญ)
   - มีรูปหลายขนาดปะปนกัน (224x224, 1600x1200, 4000x3000 ฯลฯ)
   - ต้อง Resize ทุกรูปให้เป็นขนาดเดียวกัน (640x640) ก่อนเทรน
@@ -79,23 +78,20 @@ Dataset ชุดนี้มีความสมดุลสูงมาก �
   - วิธีการประเมินผล: เดิมใช้ Likert Scale วัด mAP/Precision/Recall
     -> ต้องแก้เป็นตารางค่าตัวเลขจากโมเดลโดยตรง
   - ค่าใช้จ่าย Cloud: Pinecone และ Gemini API มี Cost/Rate Limit
-    -> ควรมีแผนสำรองแบบ Local (ChromaDB / Ollama)
+    -> ยืนยันการใช้งาน Pinecone และ Gemini เป็นตัวเลือกหลัก
 
 
-5. สรุป Actions ที่ต้องทำ
---------------------------
+
+## 5. สรุป Actions ที่ต้องทำ
 เสร็จแล้ว:
-  [x] ตรวจสอบไฟล์เสีย -> ไม่พบ
-  [x] ยืนยันจำนวนไฟล์แต่ละคลาส
-  [x] ตัด Tungro ออกจาก dataset
-  [x] อัปเดตเอกสาร
-
-ต้องทำต่อ:
-  [ ] Resize รูปทั้งหมดให้เป็น 640x640 (letterbox)
-  [ ] วางแผนและเริ่ม Label Bounding Box ใน Roboflow
-  [ ] ระบุ RT-DETR Variant และ Hyperparameters ใน Project Plan
-  [ ] แก้ตาราง 3-2 ใน Project — เปลี่ยนจาก Likert Scale
+- [x] ตรวจสอบไฟล์เสีย -> ไม่พบ
+- [x] ยืนยันจำนวนไฟล์แต่ละคลาส
+- [x] ตัด Tungro ออกจาก dataset
+- [x] อัปเดตเอกสาร
+- [x] Resize รูปทั้งหมดให้เป็น 640x640 (letterbox)
+- [x] วางแผนและเริ่ม Label Bounding Box ใน Roboflow
+- [x] ระบุ RT-DETR Variant และ Hyperparameters ใน Project Plan
+- [x] แก้ตาราง 3-2 ใน Project — เปลี่ยนจาก Likert Scale
       เป็น Performance Metrics Table
-  [ ] เตรียม Budget Pinecone/Gemini หรือหา Local Alternative
-  [ ] ออกแบบ Augmentation Pipeline
-
+- [x] เตรียม Budget Pinecone/Gemini หรือหา Local Alternative
+- [x] ออกแบบ Augmentation Pipeline

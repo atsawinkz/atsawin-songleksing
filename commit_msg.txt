@@ -1,0 +1,9 @@
+﻿refactor(rag): restructure RAGAS evaluation pipeline and implement DeepSeek judge
+
+- Split the RAGAS evaluation into two decoupled stages: answer generation (01_generate_answers.py) using Gemini, and scoring (02_evaluate_scores.py) using DeepSeek V4 via OpenCodeZen.
+- Resolve API rate limit and quota exceeded issues by migrating the evaluator from Gemini/OpenAI to DeepSeek.
+- Fix DeepSeek n=1 provider error by explicitly setting answer_relevancy.strictness = 1.
+- Resolve Windows terminal encoding and output buffering issues by wrapping sys.stdout with line_buffering=True.
+- Update project documentation extensively, including Project_Knowledge.md and project_implementation_issues.md.
+- Reorganize project structure by migrating training scripts to the training/ directory and converting text documentation files to Markdown format.
+- Refine the ground truth dataset to 70 Q&A pairs for accurate benchmarking.

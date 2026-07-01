@@ -1,0 +1,12 @@
+path: C:/Users/COLORFUL/Documents/rice_leaf_diseases/data/labeled
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 5
+names:
+  0: bacterial_leaf_blight
+  1: brown_spot
+  2: leaf_blast
+  3: leaf_scald
+  4: sheath_blight
