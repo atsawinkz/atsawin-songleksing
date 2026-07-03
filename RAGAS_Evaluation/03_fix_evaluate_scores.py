@@ -65,7 +65,7 @@ def fix_evaluation():
     base_url = os.getenv('OPENCODE_ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
     
     # ใช้ API Key ใหม่ที่เปลี่ยนอีเมล
-    print(f"กำลังเชื่อมต่อกับ OpenCodeZen (กรุณาเช็คให้แน่ใจว่าในไฟล์ .env เปลี่ยน OPENCODE_ZEN_API_KEY เป็นตัวใหม่แล้ว)")
+    print(f"กำลังเชื่อมต่อกับ OpenCodeZen")
     ragas_llm = ChatOpenAI(
         model="deepseek-v4-flash-free", 
         api_key=api_key, 

@@ -1,6 +1,0 @@
-﻿feat(rag): implement patching script to recover failed RAGAS evaluations
-
-- Develop 03_fix_evaluate_scores.py to specifically target and re-evaluate missing scores (NaN) caused by API timeouts and rate limits, minimizing redundant API calls.
-- Update eval_details.csv and eval_scores.json with the intermediate results of the 70-item RAGAS evaluation run, capturing the 37 successful records and 33 timeouts.
-- Document the API rate limit/timeout issue and its patching strategy as Section 8 in docs/project_implementation_issues.md to maintain a comprehensive troubleshooting log.
-- Remove leftover commit_msg.txt from the previous commit.
