@@ -1,8 +1,0 @@
-﻿docs(rag): finalize RAGAS evaluation Phase 5 and publish version 1 report
-
-- Successfully execute the patching script (03_fix_evaluate_scores.py) to fully recover and evaluate all 70 ground truth items, resolving the API timeout constraints.
-- Update eval_details.csv and eval_scores.json with the final complete evaluation metrics (Faithfulness: 70.21%, Context Recall: 17.71%).
-- Generate and publish docs/ragas_evaluation_report_v1.md detailing the comprehensive analysis of the RAG system's current performance and outlining concrete optimization strategies for future iterations.
-- Document the 03_fix_evaluate_scores.py workflow in Evaluation_Guide.md and mark the rate-limit issue as successfully resolved in project_implementation_issues.md.
-- Mark Phase 5 (RAG Pipeline Evaluation) as officially complete in the project execution plan (แพลนดำเนินงาน.md).
-- Clean up residual commit message file.

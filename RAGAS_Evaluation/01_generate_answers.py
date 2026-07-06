@@ -7,7 +7,7 @@ C = {
     'GEMINI_API_KEY': '', 
     'PINECONE_API_KEY': '', 
     'PINECONE_INDEX': 'rice-knowledge', 
-    'TOP_K': 3, 
+    'TOP_K': 5, 
     'GROUND_TRUTH_PATH': os.path.join(os.path.dirname(__file__), 'ragas_ground_truth.json')
 }
 

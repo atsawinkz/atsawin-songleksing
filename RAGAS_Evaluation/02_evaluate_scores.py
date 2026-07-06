@@ -40,7 +40,7 @@ def run_eval(results):
     # Use max_workers=2 to speed it up a bit since OpenCode Zen might have higher limits
     run_cfg = RunConfig(max_workers=2)
     
-    print('เริ่มกระบวนการ RAGAS Evaluation')
+    print('เริ่มกระบวนการ RAGAS Evaluation...')
     s = ev(ds, metrics=[context_precision, faithfulness, answer_relevancy, context_recall],
            llm=ragas_llm, embeddings=ragas_emb, run_config=run_cfg, raise_exceptions=False)
     

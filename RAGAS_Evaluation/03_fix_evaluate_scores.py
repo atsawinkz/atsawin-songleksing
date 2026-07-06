@@ -65,7 +65,7 @@ def fix_evaluation():
     base_url = os.getenv('OPENCODE_ZEN_BASE_URL', 'https://opencode.ai/zen/v1')
     
     # ใช้ API Key ใหม่ที่เปลี่ยนอีเมล
-    print(f"กำลังเชื่อมต่อกับ OpenCodeZen")
+    print(f"กำลังเชื่อมต่อกับ OpenCodeZen...")
     ragas_llm = ChatOpenAI(
         model="deepseek-v4-flash-free", 
         api_key=api_key, 
@@ -79,7 +79,7 @@ def fix_evaluation():
     run_cfg = RunConfig(max_workers=1) # ลด workers ลงเพื่อป้องกัน rate limit
     
     # 5. รันซ่อมแซม
-    print(f"กำลังส่งให้ DeepSeek ตรวจข้อสอบซ่อม จำนวน {len(failed_indices)} ข้อ...")
+    print(f"กำลังตรวจข้อสอบซ่อม จำนวน {len(failed_indices)} ข้อ...")
     fixed_eval = ev(ds, metrics=[cp, ft, ar, cr], llm=ragas_llm, embeddings=ragas_emb, run_config=run_cfg, raise_exceptions=False)
     
     fixed_df = fixed_eval.to_pandas()
