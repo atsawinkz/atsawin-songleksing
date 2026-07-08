@@ -7,8 +7,17 @@ C = {
     'GEMINI_API_KEY': '', 
     'PINECONE_API_KEY': '', 
     'PINECONE_INDEX': 'rice-knowledge', 
-    'TOP_K': 7, 
+    'TOP_K': 5, 
     'GROUND_TRUTH_PATH': os.path.join(os.path.dirname(__file__), 'ragas_ground_truth.json')
+}
+
+# === Mapping ชื่อโรคสำหรับ Metadata Filter ===
+DISEASE_IDS = {
+    "bacterial_leaf_blight": ["ขอบใบแห้ง", "bacterial leaf blight", "blb", "ใบไหม้ขอบ"],
+    "brown_spot": ["ใบจุดสีน้ำตาล", "brown spot", "จุดสีน้ำตาล", "ตาเหยี่ยว"],
+    "leaf_blast": ["ไหม้", "blast", "leaf blast", "rice blast", "ไหม้คอรวง", "เน่าคอรวง", "pyricularia"],
+    "leaf_scald": ["ใบขีดสีน้ำตาล", "leaf scald", "ขีดสีน้ำตาล", "ใบขีด"],
+    "sheath_blight": ["กาบใบแห้ง", "sheath blight", "กาบใบ", "rhizoctonia"],
 }
 
 def init_llm(cfg):
@@ -19,12 +28,81 @@ def init_llm(cfg):
 def get_emb(emb, text):
     return emb.embed_content(model='models/gemini-embedding-001', content=text)['embedding']
 
+def detect_disease(query):
+    """สกัดชื่อโรคจากคำถามโดยใช้ Keyword Matching
+    คืนค่า disease_id หรือ None ถ้าไม่เจอ"""
+    query_lower = query.lower()
+    for disease_id, keywords in DISEASE_IDS.items():
+        for kw in keywords:
+            if kw in query_lower:
+                return disease_id
+    return None
+
 def retrieve(emb, query, cfg):
+    """ค้นหาแบบ Hybrid (Dense + Sparse BM25) พร้อม Metadata Filter"""
+    import math, re, json
+    from collections import Counter
     from pinecone import Pinecone
+    import mmh3
+    
     pc = Pinecone(api_key=cfg['PINECONE_API_KEY'] or os.getenv('PINECONE_API_KEY', ''))
     idx = pc.Index(cfg['PINECONE_INDEX'])
-    qe = get_emb(emb, query)
-    r = idx.query(vector=qe, top_k=cfg['TOP_K'], include_metadata=True)
+    
+    # Dense vector (ความหมาย)
+    dense_vector = get_emb(emb, query)
+    
+    # Sparse vector (BM25 - คำนวณเอง)
+    sparse_vector = None
+    bm25_stats_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'bm25_stats.json')
+    if os.path.exists(bm25_stats_path):
+        with open(bm25_stats_path, 'r', encoding='utf-8') as f:
+            stats = json.load(f)
+        
+        # Tokenize query
+        tokens = re.findall(r'[\w]+', query.lower())
+        tokens = [t for t in tokens if len(t) > 1 or t.isdigit()]
+        tf = Counter(tokens)
+        doc_len = len(tokens)
+        
+        doc_freq = stats['doc_freq']
+        num_docs = stats['num_docs']
+        avg_dl = stats['avg_dl']
+        k1, b = 1.5, 0.75
+        
+        indices = []
+        values = []
+        for term, freq in tf.items():
+            token_id = abs(mmh3.hash(term)) % (2**31)
+            df = doc_freq.get(term, 0)
+            idf = math.log((num_docs - df + 0.5) / (df + 0.5) + 1.0)
+            tf_norm = (freq * (k1 + 1)) / (freq + k1 * (1 - b + b * doc_len / avg_dl))
+            score = idf * tf_norm
+            if score > 0:
+                indices.append(token_id)
+                values.append(round(score, 6))
+        
+        if indices:
+            sparse_vector = {"indices": indices, "values": values}
+    
+    # สกัดชื่อโรคจากคำถาม
+    disease_id = detect_disease(query)
+    
+    # เตรียม query params
+    query_params = {
+        "vector": dense_vector,
+        "top_k": cfg['TOP_K'],
+        "include_metadata": True,
+    }
+    
+    # เพิ่ม Sparse vector ถ้ามี (Hybrid Search)
+    if sparse_vector is not None:
+        query_params["sparse_vector"] = sparse_vector
+    
+    # เพิ่ม Metadata Filter ถ้าจับชื่อโรคได้
+    if disease_id:
+        query_params["filter"] = {"disease_id": {"$eq": disease_id}}
+    
+    r = idx.query(**query_params)
     return [m['metadata']['text'] for m in r.get('matches', [])]
 
 import time
@@ -53,10 +131,15 @@ def run_pipeline(cfg):
     for i, qa in enumerate(data['qa_pairs']):
         q = qa['question']
         gt = qa['ground_truth']
+        
+        # สกัดชื่อโรค (แสดงให้เห็นว่า Filter ทำงาน)
+        disease_id = detect_disease(q)
+        filter_info = f" [Filter: {disease_id}]" if disease_id else " [No Filter]"
+        
         ctxs = retrieve(emb, q, cfg)
         ans = generate(llm, q, ctxs)
         results.append({'question': q, 'ground_truth': gt, 'answer': ans, 'contexts': ctxs})
-        print('  [' + str(i+1) + '/' + str(total) + '] ' + q[:40] + '...')
+        print('  [' + str(i+1) + '/' + str(total) + ']' + filter_info + ' ' + q[:40] + '...')
     return results
 
 def run_eval(results, cfg):
@@ -108,6 +191,7 @@ if __name__ == '__main__':
     os.makedirs(args.output, exist_ok=True)
     
     print('Backend: Gemini 3.1 Flash Lite | DB: Pinecone (' + cfg['PINECONE_INDEX'] + ') | Top-K: ' + str(cfg['TOP_K']))
+    print('Mode: Hybrid Search (Dense + BM25) + Metadata Filter + Context Enrichment')
     res_path = os.path.join(args.output, 'eval_results.json')
     
     print('Running RAG pipeline for all questions...')
