@@ -1,0 +1,8 @@
+﻿docs(rag): publish V3 evaluation report and finalize top-k empirical tests
+
+- Generate and publish docs/ragas_evaluation_report_v3.md documenting the results of the TOP_K=7 evaluation run.
+- Refactor docs/ragas_evaluation_report_v2.md to be a standalone report for TOP_K=5, removing direct comparison tables with V1 to improve readability as requested.
+- Conclude that increasing TOP_K exhibits diminishing returns for Context Recall (stagnating at ~23.8%) while maintaining high Faithfulness (~69.7%), indicating Vector Search limitations.
+- Update eval_details.csv, eval_results.json, and eval_scores.json with the final V3 dataset.
+- Recommend architectural shifts (Hybrid Search, Re-Chunking, Metadata) for the future tuning phase instead of further parameter tweaking.
+

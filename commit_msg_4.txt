@@ -1,8 +1,0 @@
-﻿docs(rag): publish V2 evaluation report and optimize retrieval top-k
-
-- Update 01_generate_answers.py by increasing TOP_K from 3 to 5 to improve Context Recall.
-- Publish docs/ragas_evaluation_report_v2.md to document the V2 evaluation results, demonstrating a +6% increase in Context Recall after tuning top-k.
-- Enhance docs/ragas_evaluation_report_v1.md by injecting a deep architectural root cause analysis detailing the 4 main limitations of the current retrieval pipeline.
-- Update eval_details.csv, eval_results.json, and eval_scores.json with the new scores from the V2 run.
-- Minor typographical improvements in print statements within 02_evaluate_scores.py and 03_fix_evaluate_scores.py.
-- Clean up residual commit message file.

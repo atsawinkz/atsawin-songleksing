@@ -7,7 +7,7 @@ C = {
     'GEMINI_API_KEY': '', 
     'PINECONE_API_KEY': '', 
     'PINECONE_INDEX': 'rice-knowledge', 
-    'TOP_K': 5, 
+    'TOP_K': 7, 
     'GROUND_TRUTH_PATH': os.path.join(os.path.dirname(__file__), 'ragas_ground_truth.json')
 }
 
@@ -116,4 +116,3 @@ if __name__ == '__main__':
         json.dump(results, f, ensure_ascii=False, indent=2)
     print('Pipeline complete. Answers saved to ' + res_path)
     print('RAG Generation Complete')
-    print('Now you can run 02_evaluate_scores.py to evaluate the answers.')
