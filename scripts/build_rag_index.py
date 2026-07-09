@@ -116,9 +116,9 @@ print(f"  ✅ Index '{INDEX_NAME}' พร้อมใช้งาน!")
 index = pc.Index(INDEX_NAME)
 
 # ============================================================
-# 4. เตรียม Text Splitter (ปรับ chunk ใหญ่ขึ้น + overlap มากขึ้น)
-#    - chunk_size: 1000 -> 1500 (รักษาบริบทให้ครบถ้วน)
-#    - chunk_overlap: 200 -> 300 (ป้องกันคำสำคัญถูกตัดขาด)
+# 4. เตรียม Text Splitter (ปรับ chunk กลับเป็น 1500 ตามผลลัพธ์ V4 ที่ดีที่สุด)
+#    - chunk_size: 1500
+#    - chunk_overlap: 300
 # ============================================================
 markdown_splitter = MarkdownTextSplitter(chunk_size=1500, chunk_overlap=300)
 
