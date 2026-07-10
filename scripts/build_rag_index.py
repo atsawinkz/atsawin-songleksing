@@ -43,10 +43,13 @@ DISEASE_DISPLAY_NAMES = {
 # ============================================================
 # BM25 Sparse Vector Implementation (Manual - ไม่ต้องใช้ pinecone-text)
 # ============================================================
+import string
+import pythainlp
+
 def tokenize(text):
-    """ตัดคำง่ายๆ สำหรับภาษาไทย+อังกฤษ โดยแยกตามช่องว่าง, วรรคตอน"""
-    # แยกตามช่องว่างและเครื่องหมายวรรคตอน แล้ว lowercase
-    tokens = re.findall(r'[\w]+', text.lower())
+    """ตัดคำด้วย pythainlp สำหรับภาษาไทย+อังกฤษ"""
+    text = text.translate(str.maketrans('', '', string.punctuation)).lower()
+    tokens = pythainlp.word_tokenize(text, keep_whitespace=False)
     # กรองคำสั้นมากออก (1 ตัวอักษร) ยกเว้นตัวเลข
     return [t for t in tokens if len(t) > 1 or t.isdigit()]
 
@@ -64,11 +67,9 @@ def compute_bm25_sparse(text, doc_freq, num_docs, avg_dl, k1=1.5, b=0.75):
         # Hash token เป็น integer index (ใช้ mmh3 เพื่อให้ consistent)
         token_id = abs(mmh3.hash(term)) % (2**31)
         
-        # คำนวณ BM25 score
-        df = doc_freq.get(term, 0)
-        idf = math.log((num_docs - df + 0.5) / (df + 0.5) + 1.0)
+        # คำนวณ BM25 score ฝั่ง Document (ใช้เฉพาะ TF Normalization)
         tf_norm = (freq * (k1 + 1)) / (freq + k1 * (1 - b + b * doc_len / avg_dl))
-        score = idf * tf_norm
+        score = tf_norm
         
         if score > 0:
             indices.append(token_id)

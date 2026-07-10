@@ -58,8 +58,11 @@ def retrieve(emb, query, cfg):
         with open(bm25_stats_path, 'r', encoding='utf-8') as f:
             stats = json.load(f)
         
-        # Tokenize query
-        tokens = re.findall(r'[\w]+', query.lower())
+        # Tokenize query ด้วย pythainlp
+        import string
+        import pythainlp
+        query_clean = query.translate(str.maketrans('', '', string.punctuation)).lower()
+        tokens = pythainlp.word_tokenize(query_clean, keep_whitespace=False)
         tokens = [t for t in tokens if len(t) > 1 or t.isdigit()]
         tf = Counter(tokens)
         doc_len = len(tokens)
@@ -74,9 +77,9 @@ def retrieve(emb, query, cfg):
         for term, freq in tf.items():
             token_id = abs(mmh3.hash(term)) % (2**31)
             df = doc_freq.get(term, 0)
+            # คำนวณ BM25 score ฝั่ง Query (ใช้ IDF * Query Freq)
             idf = math.log((num_docs - df + 0.5) / (df + 0.5) + 1.0)
-            tf_norm = (freq * (k1 + 1)) / (freq + k1 * (1 - b + b * doc_len / avg_dl))
-            score = idf * tf_norm
+            score = idf * freq
             if score > 0:
                 indices.append(token_id)
                 values.append(round(score, 6))
@@ -86,6 +89,14 @@ def retrieve(emb, query, cfg):
     
     # สกัดชื่อโรคจากคำถาม
     disease_id = detect_disease(query)
+    
+    # === การทำ Alpha Blending เพื่อเกลี่ยน้ำหนัก Hybrid ===
+    # ปรับน้ำหนัก Sparse (BM25) กับ Dense (Vector) ให้สมดุลกัน
+    # ปกติ Sparse score จะโดดไปสูงมาก เราจึงใช้ alpha=0.7 เพื่อให้น้ำหนัก Dense 70% และ Sparse 30%
+    alpha = 0.7 
+    dense_vector = [v * alpha for v in dense_vector]
+    if sparse_vector:
+        sparse_vector["values"] = [v * (1.0 - alpha) for v in sparse_vector["values"]]
     
     # เตรียม query params
     query_params = {
