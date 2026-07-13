@@ -16,7 +16,7 @@ cd RAGAS_Evaluation
 ```
 
 ### 2. สร้างกระดาษคำตอบ (Generation Step)
-รันสคริปต์นี้เพื่อดึงข้อมูลจาก Pinecone และให้ **Gemini 3.1 Flash Lite** สร้างคำตอบ (ดึงมาทีละ 3 Chunks: Top K = 3)
+รันสคริปต์นี้เพื่อดึงข้อมูลจาก Pinecone และให้ **Gemini 3.1 Flash Lite** สร้างคำตอบ (ดึงมาทีละ 5 Chunks: Top K = 5)
 ```bash
 set GEMINI_API_KEY=YOUR_GEMINI_KEY
 set PINECONE_API_KEY=YOUR_PINECONE_KEY
@@ -38,7 +38,7 @@ python 02_evaluate_scores.py
 | --api-key | env var | Gemini API key (override env var) |
 | --pinecone-key | env var | Pinecone API key (override env var) |
 | --pinecone-index | rice-knowledge | Pinecone index name |
-| --top-k | 3 | Number of chunks to retrieve |
+| --top-k | 5 | Number of chunks to retrieve |
 | --ground-truth | ragas_ground_truth.json | Ground truth Q&A file |
 | --output | evaluation_results | Output directory |
 
@@ -72,11 +72,11 @@ python 02_evaluate_scores.py
 
 เพื่อให้เข้าใจกลไกเบื้องหลัง สามารถกลับมาทบทวนการทำงานของทั้ง 3 สคริปต์ได้ตามนี้ครับ:
 
-### 1. `01_generate_answers.py` (ระบบค้นหาและตอบคำถามแบบ Semantic Search)
+### 1. `01_generate_answers.py` (ระบบค้นหาและตอบคำถามแบบ Hybrid Search)
 สคริปต์นี้เปรียบเสมือน **"แชตบอตทำข้อสอบ"** มีลำดับการทำงานคือ:
 1. **เตรียมตัว:** อ่านโจทย์ 70 ข้อจากไฟล์ `ragas_ground_truth.json`
-2. **ค้นหาข้อมูล (Retrieve):** นำคำถามไปแปลงเป็นตัวเลข (Vector) ด้วยโมเดล `gemini-embedding-001` แล้วค้นหาความเหมือนในฐานข้อมูล Pinecone (ดึงมา 3 ชิ้น ตามค่า Top K = 3)
-3. **สร้างคำตอบ (Generate):** ส่งคำถามพร้อมกับบริบท (Context) 3 ชิ้นนั้นไปให้โมเดล **Gemini 3.1 Flash Lite** เพื่อสร้างคำตอบที่ตรงประเด็น
+2. **ค้นหาข้อมูล (Retrieve):** ใช้ระบบ **Hybrid Search** (ผสมผสานระหว่าง Gemini Dense Vector เพื่อความหมาย และ PyThaiNLP BM25 Sparse Vector เพื่อคีย์เวิร์ดภาษาไทย) โดยถ่วงน้ำหนักด้วย Alpha Blending = 0.7 แล้วดึงข้อมูลจาก Pinecone (Top K = 5)
+3. **สร้างคำตอบ (Generate):** ส่งคำถามพร้อมกับบริบท (Context) 5 ชิ้นนั้นไปให้โมเดล **Gemini 3.1 Flash Lite** เพื่อสร้างคำตอบที่ตรงประเด็น
 4. **บันทึก:** เซฟ [โจทย์, เฉลย, โพยที่หาได้, คำตอบที่สร้าง] ลงไฟล์ `evaluation_results/eval_results.json` 
 
 ### 2. `02_evaluate_scores.py` (ระบบคุณครูตรวจข้อสอบ)

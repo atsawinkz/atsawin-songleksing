@@ -5,7 +5,7 @@
 > **ผู้พัฒนา:** นายอัศวิน ทรงเล็กสิงห์
 > **สังกัด:** ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์และวิศวกรรมศาสตร์ มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตเฉลิมพระเกียรติ จังหวัดสกลนคร
 > **ปีการศึกษา:** 2568 (ปริญญานิพนธ์)
-> **อัปเดตล่าสุด:** 1 ก.ค. 2569
+> **อัปเดตล่าสุด:** 10 ก.ค. 2569
 
 ---
 
@@ -165,10 +165,12 @@ rice_leaf_diseases/
 │       └── test/images/ + labels/
 ├── docs/
 │   ├── dataset/
-│   │   ├── รายละเอียดไฟล์.txt        # สรุปจำนวนรูปแต่ละคลาส
-│   │   └── สรุปการวิเคราะห์dataset.txt # วิเคราะห์ dataset เชิงลึก
-│   └── plans/
-│       └── แพลนดำเนินงาน.txt         # ★ แพลนหลัก 8 Phases
+│   │   ├── รายละเอียดไฟล์.md        # สรุปจำนวนรูปแต่ละคลาส
+│   │   └── สรุปการวิเคราะห์dataset.md # วิเคราะห์ dataset เชิงลึก
+│   ├── plans/
+│   │   └── แพลนดำเนินงาน.md         # ★ แพลนหลัก 8 Phases
+│   ├── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
+│   └── ragas_evaluation_report_v1-6.md  # รายงานผลประเมิน RAG แต่ละเวอร์ชัน
 ├── training/                         # ★ โฟลเดอร์สำหรับเทรนโมเดล (แยกจาก Project/)
 │   ├── train_rtdetr.py               # ★ สคริปต์เทรน RT-DETR-L
 │   ├── dataset.yaml                  # ★ YOLO config (nc: 5, ชี้ไป data/labeled/)
@@ -187,12 +189,14 @@ rice_leaf_diseases/
 │   ├── ragas_ground_truth.json       # ★ Ground Truth 70 Q&A (คัดเฉพาะที่มีคำตอบ)
 │   ├── 01_generate_answers.py        # ★ สคริปต์ให้ Gemini ทำข้อสอบ (สร้างคำตอบ)
 │   ├── 02_evaluate_scores.py         # ★ สคริปต์ให้ DeepSeek (ผ่าน OpenCodeZen) ตรวจข้อสอบ
+│   ├── 03_fix_evaluate_scores.py     # ★ สคริปต์ซ่อมแซมคะแนนข้อที่หายไป
 │   └── evaluation_results/           # ผลประเมิน RAGAS (eval_results.json, eval_details.csv, eval_scores.json)
-├── scripts/
-│   ├── check_dataset.py              # ตรวจสอบรูปเสีย + วิเคราะห์ resolution
-│   ├── extract_pdf.py                # Extract text จาก PDF (PyMuPDF)
-│   └── resize_dataset.py             # ★ Letterbox resize → 640x640
-└── output/                           # (โฟลเดอร์สำหรับผลรันอื่นๆ)
+└── scripts/
+    ├── bm25_stats.json               # ค่าสถิติ TF-IDF สำหรับระบบ BM25
+    ├── build_rag_index.py            # ★ สคริปต์สร้าง Vector DB แบบลูกผสม (Hybrid Search)
+    ├── check_dataset.py              # ตรวจสอบรูปเสีย + วิเคราะห์ resolution
+    ├── extract_pdf.py                # Extract text จาก PDF (PyMuPDF)
+    └── resize_dataset.py             # ★ Letterbox resize → 640x640
 ```
 
 ---
@@ -282,7 +286,7 @@ Embedding (Gemini)
     ↓
 Pinecone (cloud) — Index: rice_knowledge
     ↓
-Semantic Search (Top-K = 3) → Context → LLM → คำตอบ
+Hybrid Search (Dense + PyThaiNLP BM25, Alpha=0.7, Top-K=5) → Context → LLM → คำตอบ
 ```
 
 ### 6.3 Prompt Template
@@ -338,7 +342,7 @@ Rules:
 | **2** | จัดการ Dataset | ✅ เสร็จ | Unified ext, ตรวจ corrupted, วิเคราะห์ resolution |
 | **3** | Labeling + Augmentation | ✅ เสร็จ | Roboflow labeling, augmentation x3, export YOLO |
 | **4** | Train + Evaluate RT-DETR | ⬜ ยังไม่เริ่ม | ต้องเทรน + ประเมิน mAP, Precision, Recall |
-| **5** | RAG Pipeline | 🔄 กำลังดำเนินการ | สร้าง Embedding และทำ RAG ได้แล้ว (เหลือเชื่อม LINE) |
+| **5** | RAG Pipeline | ✅ เสร็จสมบูรณ์ | สร้าง Hybrid Search (PyThaiNLP) สมบูรณ์แบบ |
 | **6** | LINE + n8n Integration | ⬜ ยังไม่เริ่ม | ตั้งค่า LINE, n8n workflow, RT-DETR API |
 | **7** | Testing + Evaluation | 🔄 กำลังดำเนินการ | ระบบ RAGAS 2 ขั้นตอน (Gemini + DeepSeek) ทำงานได้สมบูรณ์แล้ว |
 | **8** | ส่งเล่ม + Present | ⬜ ยังไม่เริ่ม | เขียนบทที่ 4-5, วิดีโอ, Present |
@@ -352,18 +356,18 @@ Rules:
 - [ ] ดู Confusion Matrix → หาคู่โรคที่สับสน
 - [ ] Export ONNX สำหรับ Jetson
 
-### รายละเอียด Phase 5 (RAG Pipeline) — IN PROGRESS
+### รายละเอียด Phase 5 (RAG Pipeline) — DONE
 
 - [x] สร้างโครงสร้างไฟล์ฐานข้อมูลความรู้โรคข้าวที่ `data/knowledge/`
-- [x] Ground Truth 80 Q&A พร้อม
+- [x] Ground Truth 70 Q&A พร้อม
 - [x] RAGAS eval script พร้อม
-- [ ] ใส่ข้อมูลวิชาการสำหรับโรคข้าวในแต่ละไฟล์ Markdown (รอการใส่ข้อมูลจริง)
-- [ ] Chunking & Parsing ข้อมูลจากไฟล์ Markdown
-- [ ] สร้าง Embedding (Gemini)
-- [ ] สร้าง Pinecone Index (`rice_knowledge`)
-- [ ] ทดสอบ Semantic Search
-- [ ] เชื่อม LLM (Gemini)
-- [ ] รัน RAGAS evaluation
+- [x] ใส่ข้อมูลวิชาการสำหรับโรคข้าวในแต่ละไฟล์ Markdown (รอการใส่ข้อมูลจริง)
+- [x] Chunking & Parsing ข้อมูลจากไฟล์ Markdown
+- [x] สร้าง Embedding (Gemini)
+- [x] สร้าง Pinecone Index (`rice_knowledge`)
+- [x] ทดสอบ Hybrid Search
+- [x] เชื่อม LLM (Gemini)
+- [x] รัน RAGAS evaluation
 
 ---
 
@@ -379,7 +383,7 @@ graph TD
     E -->|0.3-0.5| G["ไม่แน่ใจ กรุณาถ่ายภาพใหม่"]
     E -->|< 0.3| H["ไม่สามารถระบุรอยโรคได้"]
     E -->|ไม่พบ detection| I["ใบข้าวปกติ ไม่พบรอยโรค"]
-    D --> J[Semantic Search in Vector DB]
+    D --> J[Hybrid Search in Vector DB]
     J --> K[LLM สร้างคำตอบ]
     K --> L[LINE Reply]
     F --> L
@@ -461,6 +465,7 @@ ragas                # RAGAS framework
 datasets             # HuggingFace datasets
 langchain-openai     # OpenAI integration (OpenCodeZen)
 langchain-google-genai # Google Gemini integration
+pythainlp            # Thai tokenization for BM25
 
 # Utilities
 pymupdf              # PDF text extraction
@@ -477,7 +482,7 @@ numpy                # Numerical ops
 > 2. **ใช้ `training/dataset.yaml` สำหรับเทรน** — ชี้ไปที่ `data/labeled/` ถูกต้องแล้ว (nc: 5)
 > 3. **`Project/dataset.yaml` + `Project/train_rtdetr.py` เป็นเวอร์ชันเก่า** — ไม่ใช้แล้ว ย้ายไป `training/`
 > 4. **ตาราง 3-2, 3-3 ในเล่ม** ถูกแก้จาก Likert Scale เป็นค่าตัวเลขแล้ว (Phase 1)
-> 5. **Chunk Size ในเล่ม** เปลี่ยนจาก 500 → 1000 ตัวอักษร, overlap 200
+> 5. **Chunk Size ในเล่ม** เปลี่ยนจาก 500 → 1500 ตัวอักษร, overlap 300
 
 > [!TIP]
 > - **เทรนโมเดล:** `cd training/ && python train_rtdetr.py`
@@ -487,4 +492,4 @@ numpy                # Numerical ops
 
 ---
 
-*สร้างโดย Antigravity AI — อัปเดตล่าสุด: 1 ก.ค. 2569*
+*สร้างโดย Antigravity AI — อัปเดตล่าสุด: 10 ก.ค. 2569*
