@@ -51,12 +51,12 @@ graph LR
 ## 2. ฮาร์ดแวร์ (Hardware)
 
 ### 2.1 เครื่องเทรน (Training Machine)
-- **Model:** Dell Precision 3690
-- **GPU:** NVIDIA RTX 2000 Ada Generation — **16GB VRAM**
-- **CPU:** Intel Core i7-14700 (2.10 GHz)
-- **RAM:** 32 GB (31.7 GB usable)
-- **Storage:** 477 GB
-- **OS:** Windows 11 Education (Version 25H2)
+- **Model:** Altos BrainSphere P150 F8
+- **GPU:** NVIDIA GeForce RTX 4090 — **24GB VRAM**
+- **CPU:** Intel Core i9-14900K (32 Cores)
+- **RAM:** 64 GB
+- **Storage:** 2.0 TB NVMe
+- **OS:** Ubuntu 24.04 LTS
 
 ### 2.2 เครื่อง Deploy (Inference)
 - **Device:** NVIDIA Jetson Orin (16GB Module) / ชื่อเครื่อง: `cis-desktop`
@@ -67,7 +67,7 @@ graph LR
 - **OS:** Ubuntu 20.04.6 LTS (64-bit)
 
 > [!IMPORTANT]
-> สเปคฮาร์ดแวร์ในเล่มบทที่ 1 (ข้อ 1.5.1) **ยังเป็น RTX 3060 Laptop** — ต้องอัปเดตให้ตรงกับ RTX 2000 Ada (Phase 1.3 ทำเสร็จแล้วในแพลน)
+> สเปคฮาร์ดแวร์ในเล่มบทที่ 1 (ข้อ 1.5.1) — ต้องอัปเดตให้ตรงกับเครื่องเทรนใหม่ (RTX 4090) (Phase 1.3 ทำเสร็จแล้วในแพลน)
 
 ---
 
@@ -487,7 +487,7 @@ numpy                # Numerical ops
 > [!TIP]
 > - **เทรนโมเดล:** `cd training/ && python train_rtdetr.py`
 > - Phase 4 (Train) กับ Phase 5 (RAG) ทำพร้อมกันได้ เพราะใช้คนละทรัพยากร (GPU vs CPU/API)
-> - RTX 2000 Ada (16GB VRAM) เทรน RT-DETR-L ที่ imgsz 640 ได้สบาย — ลอง batch 16 ก่อน
+> - RTX 4090 (24GB VRAM) เทรน RT-DETR-L ที่ imgsz 640 ได้สบายมาก — แนะนำ batch 16 หรือ 32
 > - ใช้ `amp=True` (Mixed Precision) เพื่อประหยัด VRAM
 
 ---
