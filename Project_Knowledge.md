@@ -169,9 +169,11 @@ rice_leaf_diseases/
 │   │   └── สรุปการวิเคราะห์dataset.md # วิเคราะห์ dataset เชิงลึก
 │   ├── plans/
 │   │   └── แพลนดำเนินงาน.md         # ★ แพลนหลัก 8 Phases
-│   ├── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
-│   ├── rtdetr_model_evaluation_report.md # รายงานผลการเทรนและการประเมินโมเดล RT-DETR-L
-│   └── ragas_evaluation_report_v1-6.md  # รายงานผลประเมิน RAG แต่ละเวอร์ชัน
+│   ├── rag/                          # ★ รายงานผลประเมินระบบ RAG (v1 - v6)
+│   │   └── ragas_evaluation_report_v1-6.md
+│   ├── train_model/                  # ★ รายงานผลประเมินโมเดล RT-DETR-L
+│   │   └── rtdetr_model_evaluation_report.md
+│   └── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
 ├── training/                         # ★ โฟลเดอร์สำหรับเทรนโมเดล (แยกจาก Project/)
 │   ├── train_rtdetr.py               # ★ สคริปต์เทรน RT-DETR-L
 │   ├── dataset.yaml                  # ★ YOLO config (nc: 5, ชี้ไป data/labeled/)
@@ -356,7 +358,7 @@ Rules:
 - [x] ประเมิน: mAP@0.5 = 59.3%, mAP@0.5:0.95 = 30.8%, Precision = 56.5%, Recall = 60.9%
 - [x] ดู Confusion Matrix → วิเคราะห์รายโรค (Brown Spot 80.4%, Leaf Blast 77.6%, Sheath Blight 74.5%)
 - [x] Export ONNX สำหรับ Jetson (`best.onnx` ขนาด 62.9 MB, FP16)
-- [x] บันทึกรายงาน `docs/rtdetr_model_evaluation_report.md`
+- [x] บันทึกรายงาน `docs/train_model/rtdetr_model_evaluation_report.md`
 
 ### รายละเอียด Phase 5 (RAG Pipeline) — DONE
 
