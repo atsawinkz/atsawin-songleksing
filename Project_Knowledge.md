@@ -170,6 +170,7 @@ rice_leaf_diseases/
 │   ├── plans/
 │   │   └── แพลนดำเนินงาน.md         # ★ แพลนหลัก 8 Phases
 │   ├── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
+│   ├── rtdetr_model_evaluation_report.md # รายงานผลการเทรนและการประเมินโมเดล RT-DETR-L
 │   └── ragas_evaluation_report_v1-6.md  # รายงานผลประเมิน RAG แต่ละเวอร์ชัน
 ├── training/                         # ★ โฟลเดอร์สำหรับเทรนโมเดล (แยกจาก Project/)
 │   ├── train_rtdetr.py               # ★ สคริปต์เทรน RT-DETR-L
@@ -341,20 +342,21 @@ Rules:
 | **1** | แก้ไขปริญญานิพนธ์ | ✅ เสร็จ | แก้ตาราง 3-2, 3-3, สเปค HW, chunk size, RT-DETR variant |
 | **2** | จัดการ Dataset | ✅ เสร็จ | Unified ext, ตรวจ corrupted, วิเคราะห์ resolution |
 | **3** | Labeling + Augmentation | ✅ เสร็จ | Roboflow labeling, augmentation x3, export YOLO |
-| **4** | Train + Evaluate RT-DETR | ⬜ ยังไม่เริ่ม | ต้องเทรน + ประเมิน mAP, Precision, Recall |
+| **4** | Train RT-DETR | ✅ เสร็จสมบูรณ์ | เทรน RT-DETR-L 45 Epochs (mAP50 = 59.3%, Export ONNX แล้ว) |
 | **5** | RAG Pipeline | ✅ เสร็จสมบูรณ์ | สร้าง Hybrid Search (PyThaiNLP) สมบูรณ์แบบ |
 | **6** | LINE + n8n Integration | ⬜ ยังไม่เริ่ม | ตั้งค่า LINE, n8n workflow, RT-DETR API |
 | **7** | Testing + Evaluation | 🔄 กำลังดำเนินการ | ระบบ RAGAS 2 ขั้นตอน (Gemini + DeepSeek) ทำงานได้สมบูรณ์แล้ว |
 | **8** | ส่งเล่ม + Present | ⬜ ยังไม่เริ่ม | เขียนบทที่ 4-5, วิดีโอ, Present |
 
-### รายละเอียด Phase 4 (Train RT-DETR) — TODO
+### รายละเอียด Phase 4 (Train RT-DETR) — DONE ✅
 
-- [ ] ติดตั้ง `ultralytics`, ตรวจ CUDA
-- [ ] อัปเดต `Project/dataset.yaml` ให้ชี้ไป `data/labeled/`
-- [ ] รัน `Project/train_rtdetr.py`
-- [ ] ประเมิน: mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1-Score, Inference Time
-- [ ] ดู Confusion Matrix → หาคู่โรคที่สับสน
-- [ ] Export ONNX สำหรับ Jetson
+- [x] ติดตั้ง `ultralytics`, ตรวจ CUDA (รันบน Ubuntu 24.04 + RTX 4090)
+- [x] อัปเดต `training/dataset.yaml` ให้ชี้ไป `data/labeled/`
+- [x] รัน `training/train_rtdetr.py` (เทรนไป 45 Epochs, Best at Epoch 30)
+- [x] ประเมิน: mAP@0.5 = 59.3%, mAP@0.5:0.95 = 30.8%, Precision = 56.5%, Recall = 60.9%
+- [x] ดู Confusion Matrix → วิเคราะห์รายโรค (Brown Spot 80.4%, Leaf Blast 77.6%, Sheath Blight 74.5%)
+- [x] Export ONNX สำหรับ Jetson (`best.onnx` ขนาด 62.9 MB, FP16)
+- [x] บันทึกรายงาน `docs/rtdetr_model_evaluation_report.md`
 
 ### รายละเอียด Phase 5 (RAG Pipeline) — DONE
 
