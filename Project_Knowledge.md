@@ -5,7 +5,7 @@
 > **ผู้พัฒนา:** นายอัศวิน ทรงเล็กสิงห์
 > **สังกัด:** ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์และวิศวกรรมศาสตร์ มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตเฉลิมพระเกียรติ จังหวัดสกลนคร
 > **ปีการศึกษา:** 2568 (ปริญญานิพนธ์)
-> **อัปเดตล่าสุด:** 10 ก.ค. 2569
+> **อัปเดตล่าสุด:** 08 ส.ค. 2569
 
 ---
 
@@ -174,6 +174,11 @@ rice_leaf_diseases/
 │   ├── model_evaluation/               # ★ รายงานผลประเมินโมเดล RT-DETR-L
 │   │   └── rtdetr_model_evaluation_report.md
 │   └── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
+├── api/                              # ★ Unified FastAPI Service (RT-DETR + RAG API)
+│   ├── app.py                        # REST API (`/predict`, `/rag_query`, `/diagnose_and_advise`)
+│   └── requirements.txt              # Dependencies สำหรับ API
+├── n8n/                              # ★ n8n Integration Workflows
+│   └── rice_bot_workflow.json        # LINE Chatbot Workflow JSON for n8n
 ├── training/                         # ★ โฟลเดอร์สำหรับเทรนโมเดล (แยกจาก Project/)
 │   ├── train_rtdetr.py               # ★ สคริปต์เทรน RT-DETR-L
 │   ├── dataset.yaml                  # ★ YOLO config (nc: 5, ชี้ไป data/labeled/)
@@ -346,7 +351,7 @@ Rules:
 | **3** | Labeling + Augmentation | ✅ เสร็จ | Roboflow labeling, augmentation x3, export YOLO |
 | **4** | Train RT-DETR | ✅ เสร็จสมบูรณ์ | เทรน RT-DETR-L 45 Epochs (mAP50 = 59.3%, Export ONNX แล้ว) |
 | **5** | RAG Pipeline | ✅ เสร็จสมบูรณ์ | สร้าง Hybrid Search (PyThaiNLP) สมบูรณ์แบบ |
-| **6** | LINE + n8n Integration | ⬜ ยังไม่เริ่ม | ตั้งค่า LINE, n8n workflow, RT-DETR API |
+| **6** | LINE + n8n Integration | ✅ เสร็จสมบูรณ์ | สร้าง Unified FastAPI, n8n Workflow และตรรกะ Confidence Threshold |
 | **7** | Testing + Evaluation | 🔄 กำลังดำเนินการ | ระบบ RAGAS 2 ขั้นตอน (Gemini + DeepSeek) ทำงานได้สมบูรณ์แล้ว |
 | **8** | ส่งเล่ม + Present | ⬜ ยังไม่เริ่ม | เขียนบทที่ 4-5, วิดีโอ, Present |
 
