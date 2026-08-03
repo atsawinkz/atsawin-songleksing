@@ -172,6 +172,7 @@ def retrieve_rag_context(query: str, disease_id_override: Optional[str] = None, 
     return contexts, disease_id
 
 def generate_rag_answer(query: str, contexts: List[str]) -> str:
+    import time
     llm_client, _ = init_llm()
     ctx = "\n".join(contexts)
     prompt = (
@@ -182,8 +183,16 @@ def generate_rag_answer(query: str, contexts: List[str]) -> str:
         f"Context:\n{ctx}\n\n"
         f"คำถาม: {query}"
     )
-    res = llm_client.generate_content(prompt)
-    return res.text
+    for attempt in range(3):
+        try:
+            res = llm_client.generate_content(prompt)
+            return res.text
+        except Exception as e:
+            if attempt < 2 and ('429' in str(e) or 'Quota' in str(e) or 'exhausted' in str(e).lower()):
+                time.sleep(2)
+            else:
+                raise e
+    return "ขออภัยครับ ระบบประมวลผลคำตอบขัดข้องชั่วคราว"
 
 
 # === 3. Pydantic Models ===
@@ -203,12 +212,14 @@ def health_check():
 
 @app.post("/predict")
 async def predict_image(file: UploadFile = File(...)):
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น")
-
+    # อ่านไฟล์ภาพ
     try:
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="ไฟล์ที่อัปโหลดไม่ใช่รูปภาพที่ถูกต้อง (รองรับ JPEG, PNG)")
+
+    try:
         results = model(image, imgsz=640, verbose=False)[0]
 
         detections = []
@@ -244,10 +255,10 @@ async def predict_image(file: UploadFile = File(...)):
                     max_confidence = conf
                     primary_detection = det_item
 
-        if max_confidence >= 0.50:
+        if max_confidence >= 0.50 and primary_detection:
             status = "detected"
             message = f"พบรอยโรค {primary_detection['disease_name_th']} (ความมั่นใจ {primary_detection['confidence']*100:.1f}%)"
-        elif 0.30 <= max_confidence < 0.50:
+        elif 0.30 <= max_confidence < 0.50 and primary_detection:
             status = "uncertain"
             message = f"ไม่แน่ใจเกี่ยวกับรอยโรค (พบแนวโน้มเป็น {primary_detection['disease_name_th']} ความมั่นใจ {primary_detection['confidence']*100:.1f}%) กรุณาถ่ายภาพใหม่ให้ชัดเจนยิ่งขึ้น"
         else:
