@@ -1,74 +1,77 @@
-# คู่มือการตั้งค่า LINE Official Account & n8n Workflow (Phase 6)
+# คู่มือการติดตั้งและเปิดใช้งาน LINE Chatbot (Phase 6 Deployment Guide)
 
-คู่มือนี้สรุปขั้นตอนการสร้าง **LINE Official Account (Messaging API)**, การติดตั้ง **n8n Workflow**, และการเปิดใช้งานเซิร์ฟเวอร์ **FastAPI (RT-DETR + RAG API)** เพื่อเริ่มให้บริการแชทบอทตอบคำถามและวินิจฉัยโรคข้าว
+คู่มือนี้สรุปขั้นตอนการเปิดใช้งาน **LINE Official Account (Messaging API)**, การรัน **n8n Workflow**, และเซิร์ฟเวอร์ **FastAPI (RT-DETR + RAG API)** เพื่อเปิดให้บริการระบบวินิจฉัยโรคข้าวและตอบคำถามวิชาการแก่เกษตรกร
+
+---
+
+## 📦 0. การเตรียมไฟล์สำหรับเครื่องเซิร์ฟเวอร์
+
+หากย้ายระบบไปรันบนเครื่องเซิร์ฟเวอร์ใหม่ (เช่น เครื่อง Ubuntu RTX 4090 หรือ Jetson AGX Orin):
+1. คัดลอกไฟล์ `rice_bot_deployment.zip` ไปวางบนเครื่องเป้าหมาย
+2. แตกไฟล์ด้วยคำสั่ง:
+   ```bash
+   unzip rice_bot_deployment.zip -d rice_leaf_diseases
+   cd rice_leaf_diseases
+   ```
 
 ---
 
 ## 1. การเปิดใช้งาน FastAPI Service (RT-DETR + RAG API)
 
-ก่อนเปิด n8n ต้องเปิดให้บริการ API เซิร์ฟเวอร์ในระบบก่อน:
+เซิร์ฟเวอร์ FastAPI ทำหน้าที่เป็นสมองประมวลผลทั้ง RT-DETR Model (`best.onnx`) และ RAG Pipeline:
 
 ```bash
-# 1. ติดตั้ง Dependencies
+# 1. ติดตั้ง Dependencies ทั้งหมด ( Fast-API, PyTorch, Ultralytics, Pinecone, PyThaiNLP, Gemini )
 pip install -r api/requirements.txt
 
 # 2. รัน FastAPI Server (พอร์ต 8000)
 python api/app.py
-# หรือ
-uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-ทดสอบเปิดเบราว์เซอร์ไปที่: `http://localhost:8000/health` หรือ `http://localhost:8000/docs` (Swagger UI)
+- **ตรวจสอบการทำงาน:** เปิดเบราว์เซอร์ไปที่ `http://localhost:8000/health` (ต้องขึ้น status: "online") หรือ `http://localhost:8000/docs` (Swagger UI)
 
 ---
 
-## 2. การสร้างและตั้งค่า LINE Official Account (Messaging API)
+## 2. การติดตั้ง n8n ด้วย Docker Compose
 
-1. เข้าไปที่ [LINE Developers Console](https://developers.line.biz/)
-2. สร้าง **Provider** ใหม่ (เช่น `Rice Leaf Disease Diagnosis`)
-3. สร้าง **Messaging API Channel** 
-4. เข้าไปที่เมนู **Messaging API Settings**:
-   - คัดลอก **Channel Access Token (long-lived)** 
-   - คัดลอก **Channel Secret** จากเมนู Basic Settings
-5. ตั้งค่า **Webhook**:
-   - เปิดสวิตช์ **Use webhook** เป็น `ON`
-   - ปิดสวิตช์ **Auto-response messages** และ **Greeting messages** ใน LINE Official Account Manager เพื่อให้ n8n ทำหน้าที่ตอบแทนทั้งหมด
-
----
-
-## 3. การติดตั้ง n8n และการนำเข้า Workflow
-
-### 3.1 การรัน n8n ด้วย Docker Compose (แนะนำ)
 ```bash
 # ย้ายเข้าโฟลเดอร์ n8n แล้วสั่งรันใน Background
 cd n8n
 docker compose up -d
 ```
-*หมายเหตุ: ไฟล์ `n8n/docker-compose.yml` ถูกตั้งค่า `restart: always`, Timezone `Asia/Bangkok`, และเชื่อมต่อ IP `158.108.113.124:5678` ไว้เรียบร้อยแล้ว ข้อมูลทั้งหมดจะถูกเก็บถาวรใน Volume `n8n_data`*
+*หมายเหตุ: ไฟล์ `n8n/docker-compose.yml` ถูกตั้งค่า `restart: always`, Timezone `Asia/Bangkok`, และเก็บบันทึกข้อมูลถาวรไว้ใน Volume `n8n_data` เรียบร้อยแล้ว*
 
-### 3.2 การ Import Workflow
-1. เปิดหน้าเว็บ n8n (เช่น `http://localhost:5678`)
-2. ไปที่เมนู **Workflows** -> **Import from File**
+---
+
+## 3. การ Import n8n Workflow
+
+1. เปิดเบราว์เซอร์ไปที่ n8n (เช่น `http://localhost:5678` หรือ `http://158.108.113.124:5678`)
+2. ไปที่เมนู **Workflows** -> กดปุ่ม **Import from File**
 3. เลือกไฟล์ `n8n/rice_bot_workflow.json`
-4. ดับเบิลคลิกที่โหนด **HTTP Request** ของ LINE เพื่อเปลี่ยนคำว่า `YOUR_LINE_CHANNEL_ACCESS_TOKEN` เป็น Token จริงจาก LINE Console
-5. บันทึกและกดสวิตช์มุมขวาบนให้เป็น **Active**
+4. *หมายเหตุ: คีย์ **LINE Channel Access Token** ถูกฝังตั้งค่าล่วงหน้าไว้ในไฟล์เรียบร้อยแล้ว ไม่จำเป็นต้องไล่แก้เอง*
+5. กดสวิตช์มุมขวาบนเปลี่ยนสถานะเป็น **Active** เพื่อเริ่มทำงาน
 
 ---
 
-## 4. การเปิด Webhook สำหรับ LINE (Tunneling / Public URL)
+## 4. การเปิด HTTPS Webhook สำหรับ LINE (ngrok)
 
-หากรัน n8n บนเครื่อง Local ต้องทำการเปิด Public URL เพื่อให้ LINE ส่ง Webhook เข้ามาได้:
+เนื่องจาก LINE Platform บังคับว่า Webhook URL **ต้องเป็น HTTPS เท่านั้น** (ไม่รองรับ HTTP ธรรมดา):
 
-```bash
-# ใช้ ngrok ชี้ไปที่พอร์ต 5678 (พอร์ตของ n8n)
-ngrok http 5678
-```
-
-คัดลอก HTTPS URL ที่ได้จาก ngrok (เช่น `https://xxxx.ngrok-free.app/webhook/line-webhook`) ไปแปะที่ช่อง **Webhook URL** ใน LINE Developers Console แล้วกดปุ่ม **Verify**
+1. เปิด Terminal สั่งรัน ngrok ชี้ไปที่พอร์ต 5678:
+   ```bash
+   ngrok http 5678
+   ```
+2. คัดลอกลิงก์ **`https://`** ที่ได้จาก ngrok (เช่น `https://xxxx.ngrok-free.app`)
+3. เติม `/webhook/line-webhook` ต่อท้าย กลายเป็น:
+   ```http
+   https://xxxx.ngrok-free.app/webhook/line-webhook
+   ```
+4. นำลิงก์นี้ไปวางที่ช่อง **Webhook URL** ใน [LINE Developers Console](https://developers.line.biz/) -> กด **Update** -> กดเปิดสวิตช์ **Use webhook** เป็น `ON`
 
 ---
 
-## 5. การทดสอบการใช้งาน (Testing)
+## 5. การทดสอบการใช้งานบนมือถือ (Testing)
 
-1. **ทดสอบส่งรูปภาพ:** ถ่ายภาพใบข้าวที่เป็นโรคส่งเข้าไปในแชท LINE -> แชทบอทจะตอบกลับด้วยผลวิเคราะห์โรค (ความมั่นใจ %) และวิธีรักษาเชิงวิชาการจากกรมการข้าว
-2. **ทดสอบพิมพ์ข้อความ:** พิมพ์ถาม "โรคใบจุดสีน้ำตาลรักษายังไง" -> แชทบอทจะดึงคำตอบจาก RAG Pipeline ตอบกลับทันที
+1. สแกน QR Code เพิ่มเพื่อนแชทบอทใน LINE
+2. **ทดสอบส่งรูปภาพ:** ถ่ายภาพใบข้าวที่เป็นโรคส่งเข้าไป -> แชทบอทจะตอบกลับด้วยชื่อโรค (ความมั่นใจ %) และวิธีรักษาเชิงวิชาการจากกรมการข้าว
+3. **ทดสอบพิมพ์ข้อความ:** พิมพ์ถาม "โรคใบจุดสีน้ำตาลรักษายังไง" -> แชทบอทจะดึงคำตอบจาก RAG Pipeline ตอบกลับทันที
