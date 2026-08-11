@@ -38,11 +38,13 @@ uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
 
 ## 3. การติดตั้ง n8n และการนำเข้า Workflow
 
-### 3.1 การรัน n8n ด้วย Docker
+### 3.1 การรัน n8n ด้วย Docker Compose (แนะนำ)
 ```bash
-docker run -d --name n8n -p 5678:5678 n8nio/n8n
+# ย้ายเข้าโฟลเดอร์ n8n แล้วสั่งรันใน Background
+cd n8n
+docker compose up -d
 ```
-หรือเข้าใช้งานผ่าน [n8n.cloud](https://n8n.cloud/)
+*หมายเหตุ: ไฟล์ `n8n/docker-compose.yml` ถูกตั้งค่า `restart: always`, Timezone `Asia/Bangkok`, และเชื่อมต่อ IP `158.108.113.124:5678` ไว้เรียบร้อยแล้ว ข้อมูลทั้งหมดจะถูกเก็บถาวรใน Volume `n8n_data`*
 
 ### 3.2 การ Import Workflow
 1. เปิดหน้าเว็บ n8n (เช่น `http://localhost:5678`)

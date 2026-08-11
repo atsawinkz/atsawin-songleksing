@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n_automation
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=158.108.113.124
+      - N8N_PORT=5678
+      - WEBHOOK_URL=http://158.108.113.124:5678/
+      - TZ=Asia/Bangkok
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
