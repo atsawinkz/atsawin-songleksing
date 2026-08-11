@@ -55,7 +55,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_LINE_CHANNEL_ACCESS_TOKEN"
+              "value": "Bearer srZk2fjM1+PZaoxdLrO0FPTUXTSrl8DSSpN3TCqhjX+neJsNWNGQ6IWLioDcfYh7pnzduuu5T1WNzptlW4VTpk0qoYyoYZJwo577jTWik3Sini+YXUHEJoCkVPT2Irbfxkhmjvd1SgcLJswiJCIJ2QdB04t89/1O/w1cDnyilFU="
             }
           ]
         }
@@ -106,7 +106,7 @@
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_LINE_CHANNEL_ACCESS_TOKEN"
+              "value": "Bearer srZk2fjM1+PZaoxdLrO0FPTUXTSrl8DSSpN3TCqhjX+neJsNWNGQ6IWLioDcfYh7pnzduuu5T1WNzptlW4VTpk0qoYyoYZJwo577jTWik3Sini+YXUHEJoCkVPT2Irbfxkhmjvd1SgcLJswiJCIJ2QdB04t89/1O/w1cDnyilFU="
             }
           ]
         },
@@ -162,7 +162,7 @@
             },
             {
               "name": "Authorization",
-              "value": "Bearer YOUR_LINE_CHANNEL_ACCESS_TOKEN"
+              "value": "Bearer srZk2fjM1+PZaoxdLrO0FPTUXTSrl8DSSpN3TCqhjX+neJsNWNGQ6IWLioDcfYh7pnzduuu5T1WNzptlW4VTpk0qoYyoYZJwo577jTWik3Sini+YXUHEJoCkVPT2Irbfxkhmjvd1SgcLJswiJCIJ2QdB04t89/1O/w1cDnyilFU="
             }
           ]
         },
