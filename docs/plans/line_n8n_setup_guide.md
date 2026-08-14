@@ -57,7 +57,16 @@ docker compose up -d
 
 เนื่องจาก LINE Platform บังคับว่า Webhook URL **ต้องเป็น HTTPS เท่านั้น** (ไม่รองรับ HTTP ธรรมดา):
 
-1. เปิด Terminal สั่งรัน ngrok ชี้ไปที่พอร์ต 5678:
+### 4.1 ผูก ngrok Authtoken (ทำเพียงครั้งแรกครั้งเดียว):
+1. สมัคร/เข้าสู่ระบบที่ [ngrok Dashboard](https://dashboard.ngrok.com/) (ล็อกอินด้วย Google ฟรี)
+2. ไปที่เมนู **Your Authtoken** แล้วคัดลอกโทเค็น
+3. รันคำสั่งผูกโทเค็นใน Terminal:
+   ```bash
+   ngrok config add-authtoken <YOUR_NGROK_AUTHTOKEN>
+   ```
+
+### 4.2 เริ่มต้นเปิดท่อ HTTPS:
+1. รันคำสั่ง ngrok ชี้ไปที่พอร์ต 5678:
    ```bash
    ngrok http 5678
    ```
