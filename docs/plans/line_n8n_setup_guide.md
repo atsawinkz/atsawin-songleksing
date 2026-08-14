@@ -53,29 +53,36 @@ docker compose up -d
 
 ---
 
-## 4. การเปิด HTTPS Webhook สำหรับ LINE (ngrok)
+## 4. การเปิด HTTPS Webhook สำหรับ LINE
 
-เนื่องจาก LINE Platform บังคับว่า Webhook URL **ต้องเป็น HTTPS เท่านั้น** (ไม่รองรับ HTTP ธรรมดา):
+เนื่องจาก LINE Platform บังคับว่า Webhook URL **ต้องเป็น HTTPS เท่านั้น** (ไม่รองรับ HTTP ธรรมดา) โดยสามารถเลือกวิธีเปิดท่อได้ 2 ทาง:
 
-### 4.1 ผูก ngrok Authtoken (ทำเพียงครั้งแรกครั้งเดียว):
-1. สมัคร/เข้าสู่ระบบที่ [ngrok Dashboard](https://dashboard.ngrok.com/) (ล็อกอินด้วย Google ฟรี)
-2. ไปที่เมนู **Your Authtoken** แล้วคัดลอกโทเค็น
-3. รันคำสั่งผูกโทเค็นใน Terminal:
+### 🌟 ทางเลือก A: ใช้ Pinggy (แนะนำ: ไม่ต้องติดตั้ง ไม่ต้องสมัคร Token รันได้ทันที)
+ใช้คำสั่ง SSH ที่มีติดเครื่องอยู่แล้วใน Terminal:
+```bash
+ssh -p 443 -R0:localhost:5678 a.pinggy.io
+```
+- หน้าจอจะแสดง URL แบบ `https://...` (เช่น `https://xxxx.a.pinggy.link`)
+- เติม `/webhook/line-webhook` ต่อท้าย กลายเป็น:
+  `https://xxxx.a.pinggy.link/webhook/line-webhook`
+
+---
+
+### 🔧 ทางเลือก B: ใช้ ngrok
+1. ผูกโทเค็น (ครั้งแรกครั้งเดียว):
    ```bash
    ngrok config add-authtoken <YOUR_NGROK_AUTHTOKEN>
    ```
-
-### 4.2 เริ่มต้นเปิดท่อ HTTPS:
-1. รันคำสั่ง ngrok ชี้ไปที่พอร์ต 5678:
+2. รันคำสั่งเปิดพอร์ต:
    ```bash
    ngrok http 5678
    ```
-2. คัดลอกลิงก์ **`https://`** ที่ได้จาก ngrok (เช่น `https://xxxx.ngrok-free.app`)
-3. เติม `/webhook/line-webhook` ต่อท้าย กลายเป็น:
-   ```http
-   https://xxxx.ngrok-free.app/webhook/line-webhook
-   ```
-4. นำลิงก์นี้ไปวางที่ช่อง **Webhook URL** ใน [LINE Developers Console](https://developers.line.biz/) -> กด **Update** -> กดเปิดสวิตช์ **Use webhook** เป็น `ON`
+- เติม `/webhook/line-webhook` ต่อท้ายลิงก์ `https://` ที่ได้ (เช่น `https://xxxx.ngrok-free.app/webhook/line-webhook`)
+
+---
+
+### 4.3 นำลิงก์ไปใส่ใน LINE Developers Console:
+นำลิงก์ `https://...` ที่ได้จากทางเลือก A หรือ B ไปวางที่ช่อง **Webhook URL** ใน [LINE Developers Console](https://developers.line.biz/) -> กด **Update** -> กดเปิดสวิตช์ **Use webhook** เป็น `ON`
 
 ---
 
