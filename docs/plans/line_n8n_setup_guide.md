@@ -84,3 +84,44 @@ docker compose up -d
 1. สแกน QR Code เพิ่มเพื่อนแชทบอทใน LINE
 2. **ทดสอบส่งรูปภาพ:** ถ่ายภาพใบข้าวที่เป็นโรคส่งเข้าไป -> แชทบอทจะตอบกลับด้วยชื่อโรค (ความมั่นใจ %) และวิธีรักษาเชิงวิชาการจากกรมการข้าว
 3. **ทดสอบพิมพ์ข้อความ:** พิมพ์ถาม "โรคใบจุดสีน้ำตาลรักษายังไง" -> แชทบอทจะดึงคำตอบจาก RAG Pipeline ตอบกลับทันที
+
+---
+
+## 🔄 6. การเปิดรันใหม่เมื่อปิด/เปิดเครื่องเซิร์ฟเวอร์ (Server Restart Guide)
+
+หากมีการปิดเครื่องเซิร์ฟเวอร์แล้วเปิดใหม่ สามารถสั่งรันระบบกลับขึ้นมาได้ง่ายๆ เพียง 3 คำสั่ง:
+
+```bash
+# 1. เปิดเซิร์ฟเวอร์ FastAPI (สมอง AI)
+python api/app.py
+
+# 2. เปิดระบบ n8n Automation (หากยังไม่ได้รัน)
+cd n8n && docker compose up -d
+
+# 3. เปิดท่อ ngrok ด้วย Static Domain ถาวร
+ngrok http --url=snowsuit-baboon-zealous.ngrok-free.dev 5678
+```
+*หมายเหตุ: เนื่องจากใช้ Static Domain URL ถาวร จึงไม่ต้องเข้าไปตั้งค่าแก้ Webhook URL บน LINE Developers ใหม่เลย*
+
+---
+
+## 🧹 7. การปิดใช้งานและล้างคีย์ความปลอดภัยออกจากเครื่อง (Cleanup & Decommissioning Guide)
+
+เมื่อจบโปรเจกต์ หรือต้องการยกเลิกการใช้งานระบบอย่างสมบูรณ์ เพื่อป้องกันไม่ให้คีย์ความปลอดภัยค้างในเครื่อง:
+
+### 7.1 ลบ ngrok Authtoken ออกจากเครื่อง:
+- **วิธีที่ 1 (แก้ไขไฟล์คอนฟิก):** พิมพ์คำสั่ง `ngrok config edit` แล้วลบบรรทัด `authtoken: ...` ออก
+- **วิธีที่ 2 (ลบไฟล์คอนฟิกทิ้ง):**
+  - **Windows (PowerShell):** `Remove-Item "$env:LOCALAPPDATA\ngrok\ngrok.yml"`
+  - **Linux / Ubuntu:** `rm ~/.config/ngrok/ngrok.yml`
+- **ลบ Static Domain บน Cloud:** เข้าไปที่ [ngrok Domains Dashboard](https://dashboard.ngrok.com/cloud-edge/domains) กด `...` -> **Delete Domain**
+
+### 7.2 ล้างข้อมูล n8n ถาวร (ลบ Workflow และ Credentials):
+```bash
+cd n8n
+docker compose down -v
+```
+*(การใส่แฟล็ก `-v` จะทำการลบ Docker Volume `n8n_data` ล้างคีย์และ Workflow ออกทั้งหมดทันที)*
+
+### 7.3 ยกเลิก LINE Channel Access Token:
+- เข้าไปที่ [LINE Developers Console](https://developers.line.biz/) -> แท็บ **Messaging API** -> กดปุ่ม **Reissue** เพื่อให้โทเค็นเดิมที่เคยฝังไว้ในเครื่องใช้ไม่ได้ทันที
