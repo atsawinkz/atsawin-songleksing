@@ -64,17 +64,18 @@ docker compose up -d
    ngrok config add-authtoken <YOUR_NGROK_AUTHTOKEN>
    ```
 
-### 4.2 เริ่มต้นเปิดท่อ HTTPS:
-1. รันคำสั่ง ngrok ชี้ไปที่พอร์ต 5678:
+### 4.2 เริ่มต้นเปิดท่อ HTTPS (ใช้ Static Domain ถาวร):
+1. รันคำสั่ง ngrok โดยระบุ Static Domain ถาวร:
    ```bash
-   ngrok http 5678
+   ngrok http --url=snowsuit-baboon-zealous.ngrok-free.dev 5678
    ```
-2. คัดลอกลิงก์ **`https://`** ที่ได้จาก ngrok (เช่น `https://xxxx.ngrok-free.app`)
-3. เติม `/webhook/line-webhook` ต่อท้าย กลายเป็น:
+2. ลิงก์ Webhook ถาวรของคุณอัศวินจะเป็น:
    ```http
-   https://xxxx.ngrok-free.app/webhook/line-webhook
+   https://snowsuit-baboon-zealous.ngrok-free.dev/webhook/line-webhook
    ```
-4. นำลิงก์ `https://...` นี้ไปวางที่ช่อง **Webhook URL** ใน [LINE Developers Console](https://developers.line.biz/) -> กด **Update** -> กดเปิดสวิตช์ **Use webhook** เป็น `ON`
+3. นำลิงก์ `https://...` นี้ไปวางที่ช่อง **Webhook URL** ใน [LINE Developers Console](https://developers.line.biz/) -> กด **Update** -> กดเปิดสวิตช์ **Use webhook** เป็น `ON`
+
+*หมายเหตุ: เมื่อใช้คำสั่ง `--url=snowsuit-baboon-zealous.ngrok-free.dev` ไม่ว่าจะเปิด-ปิดเครื่องใหม่กี่ครั้ง ลิงก์จะไม่เปลี่ยนอีกเลยครับ*
 
 ---
 
