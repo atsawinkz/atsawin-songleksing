@@ -71,7 +71,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/diagnose_and_advise",
+        "url": "http://host.docker.internal:8000/diagnose_and_advise",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -126,7 +126,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:8000/rag_query",
+        "url": "http://host.docker.internal:8000/rag_query",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

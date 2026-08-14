@@ -15,6 +15,8 @@ services:
       - N8N_SECURE_COOKIE=false
     volumes:
       - n8n_data:/home/node/.n8n
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   n8n_data:
