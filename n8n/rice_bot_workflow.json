@@ -112,7 +112,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"replyToken\": \"{{ $node['LINE Webhook Trigger'].json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"🌾 ผลการวินิจฉัยโรคข้าว:\\n{{ $json.detection.message }}\\n\\n💡 คำแนะนำและการรักษา:\\n{{ $json.advice }}\"\n    }\n  ]\n}",
+        "jsonBody": "={{ JSON.stringify({\n  replyToken: $node['LINE Webhook Trigger'].json.body.events[0].replyToken,\n  messages: [\n    {\n      type: 'text',\n      text: '🌾 ผลการวินิจฉัยโรคข้าว:\\n' + $json.detection.message + '\\n\\n💡 คำแนะนำและการรักษา:\\n' + $json.advice\n    }\n  ]\n}) }}",
         "options": {}
       },
       "name": "LINE Reply (Image Result)",
@@ -138,7 +138,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"question\": \"{{ $node['LINE Webhook Trigger'].json.body.events[0].message.text }}\"\n}",
+        "jsonBody": "={{ JSON.stringify({\n  question: $node['LINE Webhook Trigger'].json.body.events[0].message.text\n}) }}",
         "options": {}
       },
       "name": "Call RAG Query API",
@@ -168,7 +168,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"replyToken\": \"{{ $node['LINE Webhook Trigger'].json.body.events[0].replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"{{ $json.answer }}\"\n    }\n  ]\n}",
+        "jsonBody": "={{ JSON.stringify({\n  replyToken: $node['LINE Webhook Trigger'].json.body.events[0].replyToken,\n  messages: [\n    {\n      type: 'text',\n      text: $json.answer\n    }\n  ]\n}) }}",
         "options": {}
       },
       "name": "LINE Reply (Text RAG)",
