@@ -351,7 +351,7 @@ Rules:
 | **3** | Labeling + Augmentation | ✅ เสร็จ | Roboflow labeling, augmentation x3, export YOLO |
 | **4** | Train RT-DETR | ✅ เสร็จสมบูรณ์ | เทรน RT-DETR-L 45 Epochs (mAP50 = 59.3%, Export ONNX แล้ว) |
 | **5** | RAG Pipeline | ✅ เสร็จสมบูรณ์ | สร้าง Hybrid Search (PyThaiNLP) สมบูรณ์แบบ |
-| **6** | LINE + n8n Integration | ✅ เสร็จสมบูรณ์ | สร้าง Unified FastAPI, n8n Workflow และตรรกะ Confidence Threshold |
+| **6** | LINE + n8n Integration | ✅ เสร็จสมบูรณ์ | สร้าง Unified FastAPI, n8n Workflow, LINE Messaging API และทดสอบใช้งานจริงผ่าน 100% |
 | **7** | Testing + Evaluation | 🔄 กำลังดำเนินการ | ระบบ RAGAS 2 ขั้นตอน (Gemini + DeepSeek) ทำงานได้สมบูรณ์แล้ว |
 | **8** | ส่งเล่ม + Present | ⬜ ยังไม่เริ่ม | เขียนบทที่ 4-5, วิดีโอ, Present |
 
