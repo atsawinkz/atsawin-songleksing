@@ -1,5 +1,5 @@
 """
-Training script for RT-DETR-L (Version 2 - High Resolution 800px)
+Training script for RT-DETR-L (Version 2 - Optimized Hyperparameters)
 Optimized for NVIDIA GeForce RTX 4090 (24GB VRAM)
 """
 import os
