@@ -32,7 +32,7 @@ def main():
         augment=True,
         device=0,
         project=os.path.join(current_dir, 'runs'),
-        name='rtdetr_rice_v2_640',
+        name='rtdetr_rice_v2',
         amp=True,               # Mixed precision FP16
         workers=16,
         cache=False,
@@ -40,7 +40,7 @@ def main():
         save=True
     )
 
-    print("Retraining Completed! Best weights saved to runs/rtdetr_rice_v2_640/weights/best.pt")
+    print("Retraining Completed! Best weights saved to runs/rtdetr_rice_v2/weights/best.pt")
 
 if __name__ == '__main__':
     main()
