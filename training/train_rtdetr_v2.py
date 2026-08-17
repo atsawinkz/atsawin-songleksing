@@ -13,8 +13,8 @@ def main():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     data_yaml = os.path.join(current_dir, 'dataset.yaml')
 
-    print(f"🚀 Starting RT-DETR-L Retraining (Version 2) with imgsz=800 on RTX 4090...")
-    print(f"📁 Dataset configuration: {data_yaml}")
+    print(f"Starting RT-DETR-L Retraining (Version 2) with imgsz=800 on RTX 4090...")
+    print(f"Dataset configuration: {data_yaml}")
 
     results = model.train(
         data=data_yaml,
@@ -40,7 +40,7 @@ def main():
         save=True
     )
 
-    print("🎉 Retraining Completed! Best weights saved to runs/rtdetr_rice_v2_800/weights/best.pt")
+    print("Retraining Completed! Best weights saved to runs/rtdetr_rice_v2_800/weights/best.pt")
 
 if __name__ == '__main__':
     main()
