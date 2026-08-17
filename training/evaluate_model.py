@@ -1,34 +1,51 @@
-from ultralytics import RTDETR
 import os
 import glob
+import sys
+import argparse
+from datetime import datetime
+from ultralytics import RTDETR
 
-def get_latest_run_folder(prefix='rtdetr_rice'):
-    # ค้นหาไฟล์ best.pt ทุกที่ที่อยู่ในโฟลเดอร์รันของเราแบบเจาะลึก
-    search_path = f"**/{prefix}*/weights/best.pt"
-    best_pt_files = glob.glob(search_path, recursive=True)
-    
+def get_target_model_path(specific_run=None):
+    # กรณีผู้ใช้ระบุโฟลเดอร์หรือไฟล์ weights มาโดยตรง
+    if specific_run:
+        if os.path.isfile(specific_run):
+            return specific_run
+        target_pt = os.path.join(specific_run, 'weights', 'best.pt')
+        if os.path.exists(target_pt):
+            return target_pt
+
+    # ค้นหาไฟล์ best.pt ทั้งหมดในระบบ
+    best_pt_files = glob.glob("**/weights/best.pt", recursive=True)
     if not best_pt_files:
         return None
-        
-    # เรียงลำดับไฟล์ตามเวลาที่ถูกอัปเดตล่าสุด (ดึงรอบที่ใหม่ที่สุด)
+
+    # เรียงลำดับไฟล์ตามเวลาที่บันทึกล่าสุด (Timestamp ใหม่ที่สุด)
     best_pt_files.sort(key=os.path.getmtime, reverse=True)
-    
-    # โฟลเดอร์รันจะอยู่ 2 ชั้นถัดขึ้นไปจาก best.pt
-    latest_run = os.path.dirname(os.path.dirname(best_pt_files[0]))
-    return latest_run
+    return best_pt_files[0]
 
 def main():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    latest_run = get_latest_run_folder()
-    if not latest_run:
-        print("Error: ไม่พบไฟล์ best.pt ในระบบเลย (การเทรนอาจจะยังไม่เสร็จ หรือยังไม่เคยเซฟโมเดลสำเร็จ)")
-        return
-        
-    weights_path = os.path.join(latest_run, 'weights', 'best.pt')
-    data_yaml = os.path.join(current_dir, 'dataset.yaml')
+    parser = argparse.ArgumentParser(description="Evaluate RT-DETR Model on Test Set and Export ONNX")
+    parser.add_argument('--run', type=str, default=None, help="Path to run folder or weights (e.g. runs/rtdetr_rice_v2)")
+    args = parser.parse_args()
 
-    # โหลดโมเดลที่ดีที่สุดจากการเทรนรอบล่าสุด
-    print(f"Loading latest model from: {weights_path}")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    weights_path = get_target_model_path(args.run)
+
+    if not weights_path or not os.path.exists(weights_path):
+        print("Error: ไม่พบไฟล์ best.pt ในระบบ (กรุณาตรวจสอบว่าการเทรนเสร็จสิ้นเรียบร้อยแล้ว)")
+        return
+
+    latest_run = os.path.dirname(os.path.dirname(os.path.abspath(weights_path)))
+    data_yaml = os.path.join(current_dir, 'dataset.yaml')
+    mod_time = datetime.fromtimestamp(os.path.getmtime(weights_path)).strftime('%Y-%m-%d %H:%M:%S')
+
+    print("=========================================================")
+    print(f"Target Model:    {weights_path}")
+    print(f"Saved Timestamp: {mod_time}")
+    print(f"Run Folder:      {latest_run}")
+    print("=========================================================")
+
+    # โหลดโมเดลที่ดีที่สุดจากการเทรน
     model = RTDETR(weights_path)
 
     # 1. ประเมินผลบนชุดข้อมูลทดสอบ (Test Set)
@@ -39,6 +56,7 @@ def main():
     result_text = (
         f"--- Evaluation Results on Test Set ---\n"
         f"Model:     {weights_path}\n"
+        f"Timestamp: {mod_time}\n"
         f"mAP50-95:  {metrics.box.map:.4f}\n"
         f"mAP50:     {metrics.box.map50:.4f}\n"
         f"Precision: {metrics.box.mp:.4f}\n"
@@ -47,16 +65,15 @@ def main():
     )
     print("\n" + result_text)
     
-    # เซฟไฟล์ไว้ในโฟลเดอร์เทรนรอบนั้นๆ เลย จะได้ไม่ทับกัน
+    # เซฟไฟล์ไว้ในโฟลเดอร์เทรนรอบนั้นๆ
     result_file = os.path.join(latest_run, 'test_results.txt')
     with open(result_file, 'w', encoding='utf-8') as f:
         f.write(result_text)
 
-    print(f"หมายเหตุ: บันทึกตัวเลขคะแนนลงไฟล์ {result_file} เรียบร้อยแล้ว")
+    print(f"บันทึกตัวเลขคะแนนลงไฟล์ {result_file} เรียบร้อยแล้ว")
 
-    # 2. Export โมเดลเป็น ONNX สำหรับนำไปรันบน Jetson
-    print("\n--- Exporting to ONNX for Jetson ---")
-    # ใช้ dynamic=False และขนาดคงที่ 640x640 เพื่อประสิทธิภาพที่ดีที่สุดบน Jetson
+    # 2. Export โมเดลเป็น ONNX สำหรับนำไปรันบน Jetson / FastAPI
+    print("\n--- Exporting to ONNX for Deployment ---")
     path = model.export(format='onnx', imgsz=640, half=True, simplify=True)
     print(f"Export เสร็จสมบูรณ์! ไฟล์ ONNX ถูกบันทึกที่: {path}")
 
