@@ -29,6 +29,7 @@ def main():
     args = parser.parse_args()
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(current_dir)
     weights_path = get_target_model_path(args.run)
 
     if not weights_path or not os.path.exists(weights_path):

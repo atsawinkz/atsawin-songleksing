@@ -6,18 +6,19 @@ import os
 from ultralytics import RTDETR
 
 def main():
+    # กำหนด Working Directory ให้อยู่ในโฟลเดอร์ training เสมอ
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(current_dir)
+
     # Load COCO pre-trained RT-DETR-L
     model = RTDETR('rtdetr-l.pt')
 
-    # Path to dataset.yaml
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_yaml = os.path.join(current_dir, 'dataset.yaml')
-
     print(f"Starting RT-DETR-L Retraining (Version 2) with imgsz=640 on RTX 4090...")
-    print(f"Dataset configuration: {data_yaml}")
+    print(f"Working Directory: {current_dir}")
+    print(f"Dataset configuration: dataset.yaml")
 
     results = model.train(
-        data=data_yaml,
+        data='dataset.yaml',
         epochs=100,             # Full 100 epochs
         imgsz=640,              # Standard 640x640 matching dataset resolution
         batch=16,               # Batch size for 24GB VRAM
@@ -31,7 +32,7 @@ def main():
         mixup=0.1,              # Augmentation
         augment=True,
         device=0,
-        project=os.path.join(current_dir, 'runs'),
+        project='runs',
         name='rtdetr_rice_v2',
         amp=True,               # Mixed precision FP16
         workers=16,
