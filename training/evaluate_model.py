@@ -2,8 +2,8 @@ from ultralytics import RTDETR
 import os
 import glob
 
-def get_latest_run_folder(prefix='rtdetr_rice_v1'):
-    # ค้นหาไฟล์ best.pt ทุกที่ที่อยู่ในโฟลเดอร์รันของเราแบบเจาะลึก (เผื่อ Ultralytics เซฟซ้อนโฟลเดอร์)
+def get_latest_run_folder(prefix='rtdetr_rice'):
+    # ค้นหาไฟล์ best.pt ทุกที่ที่อยู่ในโฟลเดอร์รันของเราแบบเจาะลึก
     search_path = f"**/{prefix}*/weights/best.pt"
     best_pt_files = glob.glob(search_path, recursive=True)
     
@@ -18,12 +18,14 @@ def get_latest_run_folder(prefix='rtdetr_rice_v1'):
     return latest_run
 
 def main():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     latest_run = get_latest_run_folder()
     if not latest_run:
         print("Error: ไม่พบไฟล์ best.pt ในระบบเลย (การเทรนอาจจะยังไม่เสร็จ หรือยังไม่เคยเซฟโมเดลสำเร็จ)")
         return
         
     weights_path = os.path.join(latest_run, 'weights', 'best.pt')
+    data_yaml = os.path.join(current_dir, 'dataset.yaml')
 
     # โหลดโมเดลที่ดีที่สุดจากการเทรนรอบล่าสุด
     print(f"Loading latest model from: {weights_path}")
@@ -31,7 +33,7 @@ def main():
 
     # 1. ประเมินผลบนชุดข้อมูลทดสอบ (Test Set)
     print("\n--- Evaluating on Test Set ---")
-    metrics = model.val(data='dataset.yaml', split='test', project=latest_run, name='eval_test')
+    metrics = model.val(data=data_yaml, split='test', project=latest_run, name='eval_test')
 
     # ปริ้นท์และบันทึกค่า Metric หลักลงไฟล์
     result_text = (
