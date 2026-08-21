@@ -100,3 +100,28 @@
 - **ลักษณะปัญหา**: สคริปต์ประเมินผล `evaluate_model.py` หาไฟล์น้ำหนักโมเดล `best.pt` ไม่เจอ และขึ้น Error แจ้งเตือนไฟล์สูญหาย
 - **สาเหตุ**: พฤติกรรมของ Ultralytics บนเครื่องเทรนมีการสร้างโฟลเดอร์ผลลัพธ์ซ้อนทับกันเนื่องจากค่า Config เดิมในระบบ เช่น `runs/detect/runs/rtdetr_rice_v1-4/` ทำให้การกำหนด Path แบบตายตัว (Hardcoded Path) เช่น `runs/rtdetr_rice_v1/` ล้มเหลว
 - **วิธีการแก้ไข**: ปรับปรุงฟังก์ชัน `get_latest_run_folder()` ใน `evaluate_model.py` ให้อ่านไฟล์แบบค้นหาแนวลึก (Recursive Search `**/{prefix}*/weights/best.pt`) เพื่อทำการสแกนหาไฟล์ `best.pt` ทุกซอกทุกมุมของโฟลเดอร์ และทำการจัดลำดับตามเวลาอัปเดตล่าสุด ทำให้ระบบสแกนเจอโมเดลรอบใหม่ล่าสุดอย่างถูกต้อง 100% ไม่ว่าจะถูกสร้างไว้ในโครงสร้างโฟลเดอร์แบบใด
+
+## 16. ปัญหา Relative Dataset Path Resolution บน Linux (FileNotFoundError: dataset.yaml)
+- **ลักษณะปัญหา**: เมื่อสั่งรันสคริปต์ `python3 training/train_rtdetr_v2.py` จากโฟลเดอร์หลักของโปรเจกต์ ระบบ Ultralytics แจ้งเตือนข้อผิดพลาด `FileNotFoundError: Dataset .../training/data/labeled/valid/images not found` และหยุดการทำงานลงทันที
+- **สาเหตุ**: ในไฟล์ `training/dataset.yaml` มีการกำหนดเส้นทางแบบถอยหลังหนึ่งชั้น (`path: ../data/labeled`) เมื่อสั่งรันสคริปต์จากภายนอกโฟลเดอร์ `training/` ตัว Dataloader ของ Ultralytics จะนำ Path ไปคำนวณซ้อนกับตำแหน่งปัจจุบัน ทำให้เส้นทางเพี้ยนและหาโฟลเดอร์ภาพไม่พบ
+- **วิธีการแก้ไข**: เพิ่มคำสั่งกำหนดตำแหน่งการทำงานล่วงหน้า `current_dir = os.path.dirname(os.path.abspath(__file__))` และสั่ง `os.chdir(current_dir)` ที่บรรทัดแรกของฟังก์ชัน `main()` ในทั้ง `train_rtdetr_v2.py` และ `evaluate_model.py` เพื่อบังคับให้ Working Directory ย้ายเข้าสู่โฟลเดอร์ `training/` เสมอ ทำให้การอ้างอิง Relative Path ของ Dataset ถูกต้อง 100% ไม่ว่าจะสั่งรันจากไดเรกทอรีใด
+
+## 17. ปัญหา JSON Formatting ขัดข้องเมื่อส่งข้อความหลายบรรทัดจาก n8n สู่ LINE Bot API (Bad Control Character)
+- **ลักษณะปัญหา**: เมื่อ n8n ได้รับผลการวินิจฉัยโรคและคำแนะนำวิชาการจาก RAG แล้วพยายามส่งข้อความภาษาไทยที่มีการขึ้นบรรทัดใหม่ (`\n`) กลับไปยัง LINE API โหนด HTTP Request เกิดข้อผิดพลาด `Bad control character in string literal` ส่งผลให้แชทบอทไม่ส่งข้อความตอบกลับผู้ใช้
+- **สาเหตุ**: การนำตัวแปรที่มีอักขระขึ้นบรรทัดใหม่ (`\n`) หรือเครื่องหมายคำพูด (Quotes) ไปแปะลงในช่อง JSON Body ของ n8n ตรงๆ ทำให้โครงสร้าง JSON เสียหาย (Invalid JSON Syntax)
+- **วิธีการแก้ไข**: ปรับปรุง Expression ในโหนด HTTP Request ของ n8n โดยใช้ฟังก์ชัน `JSON.stringify({...})` ครอบ Payload ทั้งหมด เพื่อทำการแปลงและ Escape อักขระพิเศษ (`\n`, `\"`) ให้เป็นไปตามมาตรฐาน JSON สากลอย่างถูกต้อง
+
+## 18. ปัญหาการสื่อสารข้ามเครือข่ายระหว่าง n8n Docker Container กับ FastAPI บน Host OS (Connection Refused)
+- **ลักษณะปัญหา**: n8n ที่รันอยู่ภายใน Docker Container ไม่สามารถส่งคำขอ HTTP ไปยัง FastAPI Service (`http://localhost:8000`) ที่รันอยู่บน Host Machine ได้ ทำให้เกิดข้อผิดพลาด Connection Refused
+- **สาเหตุ**: ภายในระบบคอนเทนเนอร์ คำว่า `localhost` จะหมายถึงตัว Docker Container เอง ไม่ใช่เครื่องเซิร์ฟเวอร์หลัก (Host)
+- **วิธีการแก้ไข**: เพิ่มการตั้งค่า `extra_hosts: ["host.docker.internal:host-gateway"]` ในไฟล์ `n8n/docker-compose.yml` และเปลี่ยน URL Endpoint ใน n8n Workflow จาก `localhost:8000` เป็น `http://host.docker.internal:8000` ทำให้ Container สื่อสารกับบริการบน Host ได้อย่างราบรื่น
+
+## 19. ปัญหาการส่ง Header ยืนยันตัวตนดึงรูปภาพจาก LINE API ใน n8n (401 Unauthorized)
+- **ลักษณะปัญหา**: โหนด Fetch Image from LINE API ใน n8n ไม่สามารถดาวน์โหลดรูปภาพใบข้าวที่ผู้ใช้ส่งมาได้ โดย LINE API ตอบกลับด้วยรหัส 401 Unauthorized แม้จะระบุ Channel Access Token ในส่วน Header เรียบร้อยแล้ว
+- **สาเหตุ**: ในไลบรารีโหนด HTTP Request เวอร์ชัน 3 ของ n8n หากไม่ได้เปิดใช้งานพารามิเตอร์ `"sendHeaders": true` ตัวโหนดจะไม่ส่ง Header ที่กำหนดไว้ไปยังเซิร์ฟเวอร์ปลายทาง
+- **วิธีการแก้ไข**: เพิ่มค่าคอนฟิก `"sendHeaders": true` และ `"specifyHeaders": "keypair"` ในโครงสร้าง Workflow JSON ของ n8n ส่งผลให้ระบบแนบ Authorization Token ได้อย่างถูกต้องและสามารถดึงไฟล์ภาพ Binary จาก LINE สำเร็จ
+
+## 20. ปัญหาผลกระทบทางสัณฐานวิทยาของรอยโรคจาก Mosaic Augmentation (Morphological Distortion on Elongated Lesions)
+- **ลักษณะปัญหา**: ในการเทรนปรับปรุงโมเดล RT-DETR-L v2 พบว่าโรคที่มีรอยโรคกว้างและชัดเจนอย่าง Leaf Blast (+4.2%) และ Sheath Blight (+1.3%) มีค่าความแม่นยำและ Precision เพิ่มขึ้นสูงมาก แต่โรคที่มีแผลขนานยาวแคบอย่าง Bacterial Leaf Blight (BLB) และ Leaf Scald กลับมีคะแนนลดลง
+- **สาเหตุ**: กระบวนการ Mosaic Augmentation (การนำ 4 ภาพมารวมเป็น 1 ภาพ) ทำให้รอยโรคที่เป็นริ้วยาวแคบตามแนวขอบใบ (High Aspect Ratio) ถูกบีบอัดขนาดลงเหลือเพียง 1-3 พิกเซล ส่งผลให้ Transformer Attention Layer มองเห็นเป็นสัญญาณรบกวน (Noise) ประกอบกับโมเดลมีค่า Precision สูงขึ้นจึงระมัดระวังตัว ไม่ยอมตีกรอบในจุดที่กำกวม
+- **วิธีการแก้ไข/ข้อเสนอแนะเชิงวิชาการ**: บันทึกข้อค้นพบเป็นประเด็นอภิปรายในบทที่ 4-5 ของเล่มปริญญานิพนธ์ โดยชี้ให้เห็นว่าการปรับปรุงเฉพาะ Hyperparameters แบบครอบจักรวาลมีข้อจำกัดต่อรอยโรคที่มีลักษณะกายภาพพิเศษ และเสนอแนะให้ใช้แนวทาง Data-Centric AI (Re-labeling Bounding Box) ร่วมกับการทำ Class-Specific Augmentation ในงานวิจัยขั้นต่อไป
