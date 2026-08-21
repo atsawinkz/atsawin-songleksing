@@ -172,7 +172,9 @@ rice_leaf_diseases/
 │   ├── rag_evaluation/                 # ★ รายงานผลประเมินระบบ RAG (v1 - v6)
 │   │   └── ragas_evaluation_report_v1-6.md
 │   ├── model_evaluation/               # ★ รายงานผลประเมินโมเดล RT-DETR-L
-│   │   └── rtdetr_model_evaluation_report.md
+│   │   ├── rtdetr_v1_model_evaluation_report.md  # รายงานผลเทรน v1 (Baseline)
+│   │   ├── rtdetr_v2_model_evaluation_report.md  # รายงานผลเทรน v2 (Optimized)
+│   │   └── model_improvement_strategies.md       # ยุทธศาสตร์การปรับปรุงโมเดล
 │   └── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
 ├── api/                              # ★ Unified FastAPI Service (RT-DETR + RAG API)
 │   ├── app.py                        # REST API (`/predict`, `/rag_query`, `/diagnose_and_advise`)
@@ -363,7 +365,8 @@ Rules:
 - [x] ประเมิน: mAP@0.5 = 59.3%, mAP@0.5:0.95 = 30.8%, Precision = 56.5%, Recall = 60.9%
 - [x] ดู Confusion Matrix → วิเคราะห์รายโรค (Brown Spot 80.4%, Leaf Blast 77.6%, Sheath Blight 74.5%)
 - [x] Export ONNX สำหรับ Jetson (`best.onnx` ขนาด 62.9 MB, FP16)
-- [x] บันทึกรายงาน `docs/model_evaluation/rtdetr_model_evaluation_report.md`
+- [x] บันทึกรายงาน `docs/model_evaluation/rtdetr_v1_model_evaluation_report.md` (v1 Baseline)
+- [x] บันทึกรายงาน `docs/model_evaluation/rtdetr_v2_model_evaluation_report.md` (v2 Retrained)
 
 ### รายละเอียด Phase 5 (RAG Pipeline) — DONE
 

@@ -1,7 +1,7 @@
-# รายงานผลการเทรนและการประเมินประสิทธิภาพโมเดล RT-DETR-L (Object Detection)
+# รายงานผลการเทรนและการประเมินประสิทธิภาพโมเดล RT-DETR-L (Version 1 - Baseline)
 **โครงการ:** ระบบเชี่ยวชาญเพื่อการวินิจฉัยโรคพืชในข้าวและให้คำแนะนำด้วยปัญญาประดิษฐ์ (Rice Disease LINE Chatbot)  
 **วันที่บันทึก:** 2 สิงหาคม 2569  
-**โมเดลหลัก:** Real-Time Detection Transformer Large (RT-DETR-L)
+**โมเดลหลัก:** Real-Time Detection Transformer Large (RT-DETR-L v1)
 
 ---
 
