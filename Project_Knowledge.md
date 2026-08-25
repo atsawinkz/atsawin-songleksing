@@ -174,6 +174,7 @@ rice_leaf_diseases/
 │   ├── model_evaluation/               # ★ รายงานผลประเมินโมเดล RT-DETR-L
 │   │   ├── rtdetr_v1_model_evaluation_report.md  # รายงานผลเทรน v1 (Baseline)
 │   │   ├── rtdetr_v2_model_evaluation_report.md  # รายงานผลเทรน v2 (Optimized)
+│   │   ├── rtdetr_v3_model_evaluation_report.md  # รายงานผลเทรน v3 (Champion Model)
 │   │   └── model_improvement_strategies.md       # ยุทธศาสตร์การปรับปรุงโมเดล
 │   └── project_implementation_issues.md # บันทึกปัญหาทางเทคนิคและวิธีแก้ (เช่น BM25, Tokenizer)
 ├── api/                              # ★ Unified FastAPI Service (RT-DETR + RAG API)
@@ -367,6 +368,7 @@ Rules:
 - [x] Export ONNX สำหรับ Jetson (`best.onnx` ขนาด 62.9 MB, FP16)
 - [x] บันทึกรายงาน `docs/model_evaluation/rtdetr_v1_model_evaluation_report.md` (v1 Baseline)
 - [x] บันทึกรายงาน `docs/model_evaluation/rtdetr_v2_model_evaluation_report.md` (v2 Retrained)
+- [x] บันทึกรายงาน `docs/model_evaluation/rtdetr_v3_model_evaluation_report.md` (v3 Champion Model - mAP50 60.2%, Leaf Blast 86.9%)
 
 ### รายละเอียด Phase 5 (RAG Pipeline) — DONE
 
