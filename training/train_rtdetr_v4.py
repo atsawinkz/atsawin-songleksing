@@ -4,8 +4,13 @@ Optimized for NVIDIA GeForce RTX 4090 (24GB VRAM) & Intel Core i9-14900K (64GB R
 """
 import os
 import glob
+import warnings
 import torch
 from ultralytics import RTDETR
+
+# ปิดข้อความแจ้งเตือนที่ไม่จำเป็น เพื่อให้หน้าจอ Terminal แสดงผลได้สะอาดและอ่านง่าย
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", message=".*grid_sampler_2d_backward_cuda.*")
 
 # บังคับเปิด cuDNN Benchmark สำหรับรูปขนาดคงที่ 800x800 เพื่อเร่งความเร็ว CUDA Kernels
 torch.backends.cudnn.benchmark = True
@@ -76,6 +81,7 @@ def main():
         amp=True,               # Mixed precision FP16
         workers=8,              # 8 Worker threads สำหรับ 8 P-Cores ของ i9-14900K
         cache='ram',            # แคชภาพลง 64GB RAM ตัดคอขวดดิสก์ 100%
+        deterministic=False,    # ปล่อยให้ CUDA ทำงานคู่ขนานด้วยความเร็วสูงสุด
         val=True,
         save=True
     )
