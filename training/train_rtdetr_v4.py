@@ -79,8 +79,8 @@ def main():
         project='runs',
         name='rtdetr_rice_v4',
         amp=True,               # Mixed precision FP16
-        workers=8,              # 8 Worker threads สำหรับ 8 P-Cores ของ i9-14900K
-        cache=False,            # ปิด Cache เพื่อป้องกัน Linux OOM Killer ปิดโปรแกรม
+        workers=16,             # 16 Worker threads ช่วยเร่งการโหลดและประมวลผลข้อมูล
+        cache='disk',           # แคชภาพลง NVMe SSD รวดเร็วและไม่กิน RAM
         deterministic=False,    # ปล่อยให้ CUDA ทำงานคู่ขนานด้วยความเร็วสูงสุด
         val=True,
         save=True
