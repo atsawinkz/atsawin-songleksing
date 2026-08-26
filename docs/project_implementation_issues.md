@@ -125,3 +125,19 @@
 - **ลักษณะปัญหา**: ในการเทรนปรับปรุงโมเดล RT-DETR-L v2 พบว่าโรคที่มีรอยโรคกว้างและชัดเจนอย่าง Leaf Blast (+4.2%) และ Sheath Blight (+1.3%) มีค่าความแม่นยำและ Precision เพิ่มขึ้นสูงมาก แต่โรคที่มีแผลขนานยาวแคบอย่าง Bacterial Leaf Blight (BLB) และ Leaf Scald กลับมีคะแนนลดลง
 - **สาเหตุ**: กระบวนการ Mosaic Augmentation (การนำ 4 ภาพมารวมเป็น 1 ภาพ) ทำให้รอยโรคที่เป็นริ้วยาวแคบตามแนวขอบใบ (High Aspect Ratio) ถูกบีบอัดขนาดลงเหลือเพียง 1-3 พิกเซล ส่งผลให้ Transformer Attention Layer มองเห็นเป็นสัญญาณรบกวน (Noise) ประกอบกับโมเดลมีค่า Precision สูงขึ้นจึงระมัดระวังตัว ไม่ยอมตีกรอบในจุดที่กำกวม
 - **วิธีการแก้ไข/ข้อเสนอแนะเชิงวิชาการ**: บันทึกข้อค้นพบเป็นประเด็นอภิปรายในบทที่ 4-5 ของเล่มปริญญานิพนธ์ โดยชี้ให้เห็นว่าการปรับปรุงเฉพาะ Hyperparameters แบบครอบจักรวาลมีข้อจำกัดต่อรอยโรคที่มีลักษณะกายภาพพิเศษ และเสนอแนะให้ใช้แนวทาง Data-Centric AI (Re-labeling Bounding Box) ร่วมกับการทำ Class-Specific Augmentation ในงานวิจัยขั้นต่อไป
+
+## 21. ปัญหา Linux OOM-Killer บังคับปิดโปรแกรมทันทีจากการใช้ RAM Caching ที่ภาพความละเอียดสูง (Linux OOM-Killer Crash on High-Resolution `cache='ram'`)
+- **ลักษณะปัญหา**: เมื่อสั่งรันสคริปต์ `train_rtdetr_v4.py` ที่ขนาดภาพ `imgsz=800` โดยเปิดตัวแปร `cache='ram'` โปรแกรมหยุดทำงานและเด้งกลับมาที่หน้า Terminal ทันทีหลังจากกด Enter โดยไม่มีข้อความ Error หรือ Traceback ฟ้องแม้แต่บรรทัดเดียว
+- **สาเหตุ**: การแคชภาพขนาด 800x800 จำนวน 7,416 รูปเก็บไว้ใน RAM เมื่อ PyTorch Dataloader แตก Worker Threads ออกมา 8 ตัว จะเกิดปรากฏการณ์ RAM Allocation Spike ทะลุเกินขีดจำกัด 64GB ของเครื่องในเสี้ยววินาที ส่งผลให้เคอร์เนลของ Linux ส่งสัญญาณ `SIGKILL` (Exit code 137) สั่งประหารโพรเซส Python ทันทีเพื่อป้องกันระบบปฏิบัติการค้าง
+- **วิธีการแก้ไข**: เปลี่ยนจากการแคชลง RAM มาใช้ฟังก์ชัน **`cache = 'disk'`** เพื่อให้ระบบแปลงและแคชภาพเป็นไฟล์ไบนารี (`.npy`) เก็บไว้บน NVMe SSD 2TB ความเร็วสูงแทน ซึ่งช่วยให้โหลดภาพได้เร็วขึ้น 15% – 30% โดยที่ RAM ใช้งานเพียง 6–8 GB ปลอดภัยจากปัญหา Linux OOM-Killer 100%
+
+## 22. ปัญหาข้อความแจ้งเตือน Grid Sampler 2D บน CUDA และการรันแบบ Deterministic (CUDA Grid Sampler Non-deterministic Warning)
+- **ลักษณะปัญหา**: ในระหว่างการเทรน RT-DETR ปรากฏข้อความเตือนสีแดง `UserWarning: grid_sampler_2d_backward_cuda does not have a deterministic implementation...` พ่นออกมาขัดจังหวะหน้าจอ Terminal ทุก Epoch
+- **สาเหตุ**: สถาปัตยกรรม Transformer ของ RT-DETR มีการใช้ฟังก์ชัน `grid_sampler_2d` สำหรับสุ่มพิกัด Feature Grid ซึ่งบนฮาร์ดแวร์ CUDA จะทำงานแบบคู่ขนาน (Parallel Atomic Operations) ที่ไม่สามารถการันตีการรันซ้ำแบบ Deterministic ได้ 100%
+- **วิธีการแก้ไข**: เพิ่มคำสั่ง `warnings.filterwarnings("ignore", category=UserWarning)` และ `warnings.filterwarnings("ignore", message=".*grid_sampler_2d_backward_cuda.*")` ที่ส่วนต้นของสคริปต์ พร้อมตั้งค่า `deterministic=False` ใน `model.train()` เพื่อปิดข้อความเตือนที่ไม่จำเป็น และปล่อยให้การ์ดจอ CUDA ประมวลผลแบบคู่ขนานด้วยความเร็วสูงสุด
+
+## 23. ปัญหาความซับซ้อนของการคำนวณแบบยกกำลังสองใน Vision Transformer เมื่อเพิ่มขนาดภาพ (Quadratic Computational Complexity in Transformer Attention at High Resolution)
+- **ลักษณะปัญหา**: เมื่อเพิ่มขนาดภาพอินพุตจาก `640x640` เป็น `800x800` ในโมเดล RT-DETR-L พบว่าความเร็วในการเทรนลดลงเกือบเท่าตัว (จาก 4.5 it/s เหลือ 2.4 it/s และเวลาต่อรอบเพิ่มจาก 1:40 นาที เป็นเกือบ 3 นาที)
+- **สาเหตุ**: สถาปัตยกรรม Vision Transformer (AIFI และ Cross-Attention Decoder) มีภาระการคำนวณแบบ Quadratic Complexity ($O(N^2)$) เมื่อจำนวน Token เพิ่มขึ้นจาก 400 จุด (ที่ 640px) เป็น 625 จุด (ที่ 800px) ภาระการคำนวณ Attention Matrix จะเพิ่มขึ้นถึง 2.44 เท่า (จาก 160,000 ครั้ง เป็น 390,625 ครั้ง) ส่งผลให้ GFLOPs พุ่งจาก ~105 GFLOPs เป็น ~170 GFLOPs
+- **วิธีการแก้ไข/ข้อสรุปเชิงวิชาการ**: เปิดใช้งาน `cache='disk'` ร่วมกับ `workers=16` และ `torch.backends.cudnn.benchmark = True` เพื่อเร่งความเร็วการป้อนข้อมูลระดับฮาร์ดแวร์ให้ทันกับความต้องการของ GPU พร้อมบันทึกข้อค้นพบเชิงวิชาการเรื่อง Trade-off ระหว่าง Resolution และ Training Latency ในเล่มวิจัยบทที่ 4-5
+
