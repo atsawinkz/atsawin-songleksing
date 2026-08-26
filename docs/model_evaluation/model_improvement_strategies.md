@@ -39,22 +39,24 @@
 
 ---
 
-### 1.4 เวอร์ชัน 4: ยกระดับความละเอียดสูงและเร่งความเร็วฮาร์ดแวร์ (Version 4 - High-Resolution 800px & SOTA Optimization)
-- **แนวคิด:** ทลายขีดจำกัดความละเอียดภาพ 640px เพื่อเพิ่มพื้นที่พิกเซลสำหรับรอยโรคริ้วยาวแคบ พร้อมเปิดใช้การเร่งความเร็วฮาร์ดแวร์ระดับ GPU Tensor Cores + RAM 64GB
+### 1.4 เวอร์ชัน 4: ยกระดับความละเอียดสูงและการแคชบนดิสก์ความเร็วสูง (Version 4 - High-Resolution 800px & Disk-Cached SOTA)
+- **แนวคิด:** ทลายขีดจำกัดความละเอียดภาพ 640px เพื่อเพิ่มพื้นที่พิกเซลสำหรับรอยโรคริ้วยาวแคบ พร้อมเปิดใช้การแคชข้อมูลไบนารีบน NVMe SSD (`cache='disk'`) และใช้ Worker 16 Threads เพื่อความเสถียรและเร็วสูงสุดโดยไม่กิน RAM
 - **การตั้งค่าสำคัญ:**
   1. **เพิ่มความละเอียดภาพเป็น 800x800 (`imgsz=800`):** เพิ่มความหนาแน่นพิกเซลขึ้น **+56%** ช่วยให้ Transformer Feature Pyramid จับขอบเขตริ้วแผลแคบของโรคขอบใบแห้งและปลายใบแห้งได้คมชัดสูงสุด
   2. **Fine-tune ต่อยอดจาก Champion Weights ของ v3:** โหลดค่าน้ำหนักจาก v3 มาเทรนต่อด้วย `lr0=0.0001` เพื่อรักษาฐานความแม่นยำของ Leaf Blast 86.9% และ Brown Spot 80.2% ไว้
-  3. **เร่งความเร็วระดับฮาร์ดแวร์ (Hardware Acceleration):**
-     - `cache='ram'`: โหลด Dataset ทั้งหมดเก็บใน RAM 64GB ตัดปัญหาคอขวด Disk I/O 100%
-     - `workers=8`: จับคู่กับ 8 Performance Cores (P-Cores) ของ Intel Core i9-14900K
+  3. **การเร่งความเร็วระดับฮาร์ดแวร์แบบปลอดภัย (SSD Disk Caching):**
+     - `cache='disk'`: แปลงและแคชภาพเป็นไฟล์ไบนารีลงบน NVMe SSD 2TB ตัดภาระการถอดรหัส JPEG ซ้ำ ๆ ของ CPU ในทุกรอบ โดยไม่กิน RAM (RAM ใช้งานเพียง 6–8 GB ป้องกัน Linux OOM-Killer 100%)
+     - `workers=16`: ใช้ 16 Worker Threads ช่วยดึงข้อมูลและทำ Augmentation แบบคู่ขนาน
      - `torch.backends.cudnn.benchmark = True`: บังคับเลือก CUDA Kernel ที่เร็วที่สุดสำหรับขนาดภาพคงที่
+     - `deterministic=False`: ปล่อยให้ CUDA ทำงานคู่ขนานเต็มประสิทธิภาพ
   4. **ปรับถ่วงน้ำหนัก Box Loss (`box=8.5`):** บังคับให้โมเดลโฟกัสการจัดตำแหน่งกรอบ Bounding Box ให้กระชับแนบสนิทกับรอยโรคมากยิ่งขึ้น
+  5. **ปิดข้อความแจ้งเตือนที่ไม่จำเป็น (`warnings.filterwarnings`):** ปิดการพ่น UserWarning ของ `grid_sampler_2d` เพื่อให้หน้าจอ Terminal แสดงผลได้สะอาดและอ่านง่าย
 
 ---
 
 ## 2. ตารางเปรียบเทียบพารามิเตอร์การเทรนทั้ง 4 เวอร์ชัน
 
-| พารามิเตอร์ (Parameter) | เวอร์ชัน 1 (Baseline) | เวอร์ชัน 2 (Tuned HP) | เวอร์ชัน 3 (Morphological) | **เวอร์ชัน 4 (High-Res SOTA)** | วัตถุประสงค์ทางเทคนิค |
+| พารามิเตอร์ (Parameter) | เวอร์ชัน 1 (Baseline) | เวอร์ชัน 2 (Tuned HP) | เวอร์ชัน 3 (Morphological) | **เวอร์ชัน 4 (High-Res Disk-Cache)** | วัตถุประสงค์ทางเทคนิค |
 | :--- | :---: | :---: | :---: | :---: | :--- |
 | **Base Model Weights** | `rtdetr-l.pt` (COCO) | `rtdetr-l.pt` (COCO) | `best.pt` (จาก v2) | **`best.pt` (จาก v3)** | ต่อยอดความฉลาดสะสม ไม่เริ่มจากศูนย์ |
 | **Input Image Size (`imgsz`)** | `640` | `640` | `640` | **`800`** | **เพิ่มความหนาแน่นพิกเซล +56% เก็บแผลแคบ** |
@@ -65,9 +67,10 @@
 | **Early Stopping Patience** | 15 | 25 | 25 | **25** | ให้โอกาสโมเดลเรียนรู้เคสยากๆ เต็มที่ |
 | **Mosaic / Mixup** | Default | `0.5` / `0.1` | `0.0` / `0.0` (ปิด) | **`0.0` / `0.0` (ปิด)** | รักษาสัณฐานวิทยาแผลริ้วยาวต่อเนื่อง |
 | **Geometric Augmentation** | Default | Default | Flips + Rotation 15° | **Flips + Rotation 15°** | จำลองสภาพใบข้าวลู่ลมในแปลงนา |
-| **RAM Caching (`cache`)** | `False` | `False` | `False` | **`'ram'`** | แคชภาพลง 64GB RAM เร่งความเร็ว GPU |
-| **Dataloader Workers** | `16` | `16` | `16` | **`8`** | ลด Context Switching บน 8 P-Cores |
+| **Caching Strategy (`cache`)** | `False` | `False` | `False` | **`'disk'`** | แคชลง NVMe SSD โหลดเร็วและไม่ล้น RAM |
+| **Dataloader Workers** | `16` | `16` | `16` | **`16`** | ดึงข้อมูลคู่ขนานเต็มพิกัด 16 Threads |
 | **Box Loss Gain (`box`)** | `7.5` (Default) | `7.5` | `7.5` | **`8.5`** | เพิ่มความคมชัดในการตีกรอบพิกัดแผล |
+| **Deterministic Mode** | Default | Default | Default | **`False`** | ปล่อย CUDA คำนวณคู่ขนานเร็วสูงสุด |
 | **cuDNN Benchmark** | Default | Default | Default | **`True`** | เร่งความเร็ว CUDA Kernel ระดับฮาร์ดแวร์ |
 
 ---
