@@ -8,6 +8,7 @@ data/labeled_datacentric-blb/
 __pycache__/
 *.py[cod]
 *$py.class
+*.zip
 venv/
 .env
 
