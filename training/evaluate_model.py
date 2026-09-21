@@ -26,6 +26,7 @@ def get_target_model_path(specific_run=None):
 def main():
     parser = argparse.ArgumentParser(description="Evaluate RT-DETR Model on Test Set and Export ONNX")
     parser.add_argument('--run', type=str, default=None, help="Path to run folder or weights (e.g. runs/rtdetr_rice_v2)")
+    parser.add_argument('--data', type=str, default=None, help="Path to dataset yaml (e.g. dataset_v5.yaml)")
     args = parser.parse_args()
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -37,11 +38,19 @@ def main():
         return
 
     latest_run = os.path.dirname(os.path.dirname(os.path.abspath(weights_path)))
-    data_yaml = os.path.join(current_dir, 'dataset.yaml')
+    
+    if args.data:
+        data_yaml = args.data if os.path.isabs(args.data) else os.path.join(current_dir, args.data)
+    elif 'v5' in str(args.run or '') or 'v5' in str(weights_path):
+        data_yaml = os.path.join(current_dir, 'dataset_v5.yaml')
+    else:
+        data_yaml = os.path.join(current_dir, 'dataset.yaml')
+        
     mod_time = datetime.fromtimestamp(os.path.getmtime(weights_path)).strftime('%Y-%m-%d %H:%M:%S')
 
     print("=========================================================")
     print(f"Target Model:    {weights_path}")
+    print(f"Dataset Config:  {data_yaml}")
     print(f"Saved Timestamp: {mod_time}")
     print(f"Run Folder:      {latest_run}")
     print("=========================================================")
@@ -51,7 +60,7 @@ def main():
 
     # 1. ประเมินผลบนชุดข้อมูลทดสอบ (Test Set)
     print("\n--- Evaluating on Test Set ---")
-    metrics = model.val(data=data_yaml, split='test', project=latest_run, name='eval_test')
+    metrics = model.val(data=data_yaml, split='test', project=latest_run, name='eval_test', exist_ok=True)
 
     # ปริ้นท์และบันทึกค่า Metric หลักลงไฟล์
     result_text = (
