@@ -67,7 +67,6 @@ DISEASE_NAME_MAP = {
 }
 
 def find_model_path():
-    # ตรวจสอบพาธตรงของโมเดล v5 Champion
     for p in [
         "training/runs/detect/runs/rtdetr_rice_v5/weights/best.engine",
         "training/runs/detect/runs/rtdetr_rice_v5/weights/best.pt",
@@ -75,25 +74,9 @@ def find_model_path():
     ]:
         if os.path.exists(p):
             return p
-
-    # 1. ลำดับสูงสุด: TensorRT Engine (.engine) สำหรับ NVIDIA Jetson AGX Orin (ความเร็วสูงสุด)
-    search_engine = glob.glob("**/weights/best.engine", recursive=True)
-    if search_engine:
-        search_engine.sort(key=os.path.getmtime, reverse=True)
-        return search_engine[0]
-
-    # 2. ลำดับสอง: PyTorch Checkpoint (.pt) รันบน CUDA GPU ได้ทันที
     search_pt = glob.glob("**/weights/best.pt", recursive=True)
     if search_pt:
-        search_pt.sort(key=os.path.getmtime, reverse=True)
         return search_pt[0]
-
-    # 3. ลำดับสาม: ONNX FP16 (.onnx)
-    search_onnx = glob.glob("**/weights/best.onnx", recursive=True)
-    if search_onnx:
-        search_onnx.sort(key=os.path.getmtime, reverse=True)
-        return search_onnx[0]
-
     return "rtdetr-l.pt"
 
 MODEL_PATH = find_model_path()
