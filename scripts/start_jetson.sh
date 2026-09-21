@@ -19,7 +19,13 @@ fi
 # 2. เปิดใช้งาน Docker Compose สำหรับ n8n Automation Engine
 echo "⚙️ [2/4] กำลังเริ่มต้นระบบ n8n Automation Engine (Docker)..."
 cd "$(dirname "$0")/../n8n" || exit
-docker compose up -d
+if docker compose version &>/dev/null; then
+    docker compose up -d
+elif command -v docker-compose &>/dev/null; then
+    docker-compose up -d
+else
+    docker run -d --name n8n_automation --restart always -p 5678:5678 -v n8n_data:/home/node/.n8n --add-host host.docker.internal:host-gateway docker.n8n.io/n8nio/n8n:latest 2>/dev/null || true
+fi
 echo "   ✅ n8n Container พร้อมทำงานที่พอร์ต 5678"
 
 # 3. ตรวจสอบและเริ่มต้น FastAPI Server (RT-DETR + RAG API)
