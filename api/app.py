@@ -65,11 +65,19 @@ DISEASE_NAME_MAP = {
 }
 
 def find_model_path():
+    # 1. ลำดับสูงสุด: TensorRT Engine (.engine) สำหรับ NVIDIA Jetson AGX Orin (ความเร็วสูงสุด)
+    search_engine = glob.glob("**/weights/best.engine", recursive=True)
+    if search_engine:
+        search_engine.sort(key=os.path.getmtime, reverse=True)
+        return search_engine[0]
+
+    # 2. ลำดับสอง: ONNX FP16 (.onnx)
     search_onnx = glob.glob("**/weights/best.onnx", recursive=True)
     if search_onnx:
         search_onnx.sort(key=os.path.getmtime, reverse=True)
         return search_onnx[0]
 
+    # 3. ลำดับสาม: PyTorch Checkpoint (.pt)
     search_pt = glob.glob("**/weights/best.pt", recursive=True)
     if search_pt:
         search_pt.sort(key=os.path.getmtime, reverse=True)
