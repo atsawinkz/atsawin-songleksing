@@ -67,6 +67,15 @@ DISEASE_NAME_MAP = {
 }
 
 def find_model_path():
+    # ตรวจสอบพาธตรงของโมเดล v5 Champion
+    for p in [
+        "training/runs/detect/runs/rtdetr_rice_v5/weights/best.engine",
+        "training/runs/detect/runs/rtdetr_rice_v5/weights/best.pt",
+        "training/runs/detect/runs/rtdetr_rice_v5/weights/best.onnx",
+    ]:
+        if os.path.exists(p):
+            return p
+
     # 1. ลำดับสูงสุด: TensorRT Engine (.engine) สำหรับ NVIDIA Jetson AGX Orin (ความเร็วสูงสุด)
     search_engine = glob.glob("**/weights/best.engine", recursive=True)
     if search_engine:

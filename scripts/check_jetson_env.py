@@ -78,19 +78,33 @@ def check_model_benchmark():
         from ultralytics import RTDETR
         import numpy as np
         
-        # ค้นหาไฟล์โมเดล
-        model_paths = []
-        for ext, desc in [("*.engine", "TensorRT Engine"), ("*.pt", "PyTorch Weights"), ("*.onnx", "ONNX FP16")]:
-            found = glob.glob(f"**/{ext}", recursive=True)
-            if found:
-                found.sort(key=os.path.getmtime, reverse=True)
-                model_paths.append((found[0], desc))
+        # ค้นหาไฟล์โมเดลโดยตรง (หลีกเลี่ยงปัญหา wildcard)
+        target_model = None
+        model_type = None
+        for p, desc in [
+            ("training/runs/detect/runs/rtdetr_rice_v5/weights/best.engine", "TensorRT Engine"),
+            ("training/runs/detect/runs/rtdetr_rice_v5/weights/best.pt", "PyTorch Weights"),
+            ("training/runs/detect/runs/rtdetr_rice_v5/weights/best.onnx", "ONNX FP16"),
+        ]:
+            if os.path.exists(p):
+                target_model = p
+                model_type = desc
+                break
                 
-        if not model_paths:
-            print("❌ ไม่พบไฟล์โมเดล (.engine, .onnx, หรือ .pt)")
+        if not target_model:
+            # Fallback ค้นหาในโฟลเดอร์ weights ทั่วไป
+            for ext, desc in [("*.engine", "TensorRT Engine"), ("*.pt", "PyTorch Weights"), ("*.onnx", "ONNX FP16")]:
+                found = glob.glob(f"**/{ext}", recursive=True)
+                if found:
+                    found.sort(key=os.path.getmtime, reverse=True)
+                    target_model = found[0]
+                    model_type = desc
+                    break
+                
+        if not target_model:
+            print("❌ ไม่พบไฟล์โมเดล (.engine, .pt, หรือ .onnx)")
             return
             
-        target_model, model_type = model_paths[0]
         print(f"• กำลังโหลดโมเดล : {target_model} ({model_type})")
         
         start_load = time.time()
