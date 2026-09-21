@@ -73,17 +73,17 @@ def find_model_path():
         search_engine.sort(key=os.path.getmtime, reverse=True)
         return search_engine[0]
 
-    # 2. ลำดับสอง: ONNX FP16 (.onnx)
-    search_onnx = glob.glob("**/weights/best.onnx", recursive=True)
-    if search_onnx:
-        search_onnx.sort(key=os.path.getmtime, reverse=True)
-        return search_onnx[0]
-
-    # 3. ลำดับสาม: PyTorch Checkpoint (.pt)
+    # 2. ลำดับสอง: PyTorch Checkpoint (.pt) รันบน CUDA GPU ได้ทันที
     search_pt = glob.glob("**/weights/best.pt", recursive=True)
     if search_pt:
         search_pt.sort(key=os.path.getmtime, reverse=True)
         return search_pt[0]
+
+    # 3. ลำดับสาม: ONNX FP16 (.onnx)
+    search_onnx = glob.glob("**/weights/best.onnx", recursive=True)
+    if search_onnx:
+        search_onnx.sort(key=os.path.getmtime, reverse=True)
+        return search_onnx[0]
 
     return "rtdetr-l.pt"
 

@@ -80,7 +80,7 @@ def check_model_benchmark():
         
         # ค้นหาไฟล์โมเดล
         model_paths = []
-        for ext, desc in [("*.engine", "TensorRT Engine"), ("*.onnx", "ONNX FP16"), ("*.pt", "PyTorch Weights")]:
+        for ext, desc in [("*.engine", "TensorRT Engine"), ("*.pt", "PyTorch Weights"), ("*.onnx", "ONNX FP16")]:
             found = glob.glob(f"**/{ext}", recursive=True)
             if found:
                 found.sort(key=os.path.getmtime, reverse=True)
