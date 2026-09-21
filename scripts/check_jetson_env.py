@@ -134,10 +134,15 @@ def check_cloud_rag_apis():
     else:
         print(f"• Gemini API Key  : ✅ พร้อมใช้งาน (ขึ้นต้นด้วย {gemini_key[:6]}...)")
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=gemini_key)
-            test_emb = genai.embed_content(model='models/gemini-embedding-001', content='ทดสอบระบบโรคข้าว')
-            print("• Gemini Embedding: ✅ เชื่อมต่อสำเร็จ (ได้เวกเตอร์มิติ " + str(len(test_emb['embedding'])) + ")")
+            import requests
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={gemini_key}"
+            payload = {"model": "models/gemini-embedding-001", "content": {"parts": [{"text": "ทดสอบระบบโรคข้าว"}]}}
+            r = requests.post(url, json=payload, timeout=10)
+            if r.status_code == 200:
+                emb_len = len(r.json().get('embedding', {}).get('values', []))
+                print(f"• Gemini Embedding: ✅ เชื่อมต่อสำเร็จ (ได้เวกเตอร์มิติ {emb_len})")
+            else:
+                print(f"• Gemini Embedding: ❌ HTTP Error {r.status_code}: {r.text}")
         except Exception as e:
             print(f"• Gemini Embedding: ❌ เกิดข้อผิดพลาด: {e}")
             

@@ -10,6 +10,8 @@ import glob
 import math
 import string
 import json
+import time
+import requests
 from collections import Counter
 from dotenv import load_dotenv
 
@@ -99,14 +101,18 @@ DISEASE_KEYWORDS = {
     "sheath_blight": ["กาบใบแห้ง", "sheath blight", "กาบใบ", "rhizoctonia"],
 }
 
-def init_llm():
-    import google.generativeai as genai
+def get_emb(text: str) -> List[float]:
+    """สร้าง Dense Vector 3072 มิติผ่าน Gemini Embedding REST API (เข้ากันได้กับ Python 3.8+ และ Jetson)"""
     api_key = os.getenv('GEMINI_API_KEY', '')
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-3.1-flash-lite'), genai
-
-def get_emb(emb_client, text: str):
-    return emb_client.embed_content(model='models/gemini-embedding-001', content=text)['embedding']
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={api_key}"
+    payload = {
+        "model": "models/gemini-embedding-001",
+        "content": {"parts": [{"text": text}]}
+    }
+    resp = requests.post(url, json=payload, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get('embedding', {}).get('values', [])
 
 def detect_disease_from_query(query: str):
     query_lower = query.lower()
@@ -125,8 +131,7 @@ def retrieve_rag_context(query: str, disease_id_override: Optional[str] = None, 
     pc = Pinecone(api_key=pinecone_key)
     idx = pc.Index("rice-knowledge")
 
-    llm_client, emb_client = init_llm()
-    dense_vector = get_emb(emb_client, query)
+    dense_vector = get_emb(query)
 
     # Sparse BM25 vector calculation
     sparse_vector = None
@@ -180,8 +185,7 @@ def retrieve_rag_context(query: str, disease_id_override: Optional[str] = None, 
     return contexts, disease_id
 
 def generate_rag_answer(query: str, contexts: List[str]) -> str:
-    import time
-    llm_client, _ = init_llm()
+    api_key = os.getenv('GEMINI_API_KEY', '')
     ctx = "\n".join(contexts)
     prompt = (
         "คุณคือผู้เชี่ยวชาญด้านโรคข้าวจากกรมการข้าว\n"
@@ -191,10 +195,21 @@ def generate_rag_answer(query: str, contexts: List[str]) -> str:
         f"Context:\n{ctx}\n\n"
         f"คำถาม: {query}"
     )
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
     for attempt in range(3):
         try:
-            res = llm_client.generate_content(prompt)
-            return res.text
+            resp = requests.post(url, json=payload, timeout=20)
+            if resp.status_code == 200:
+                data = resp.json()
+                return data['candidates'][0]['content']['parts'][0]['text']
+            elif resp.status_code == 429:
+                time.sleep(2)
+                continue
+            else:
+                resp.raise_for_status()
         except Exception as e:
             if attempt < 2 and ('429' in str(e) or 'Quota' in str(e) or 'exhausted' in str(e).lower()):
                 time.sleep(2)
