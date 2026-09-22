@@ -158,16 +158,16 @@ def process_dataset(raw_dir, output_dir, target_size=640, preview_count=0):
 
             except Exception as e:
                 fail += 1
-                print(f"  ✗ {img_file.name}: {e}")
+                print(f"  [FAIL] {img_file.name}: {e}")
 
         total_success += success
         total_fail += fail
         total_upscaled += upscaled
         total_downscaled += downscaled
 
-        status = "✓" if fail == 0 else "⚠"
+        status = "[PASS]" if fail == 0 else "[WARN]"
         same = success - upscaled - downscaled
-        print(f"  {status} {class_name:30s} | {success:4d} สำเร็จ | ↑{upscaled} ↓{downscaled} ={same}")
+        print(f"  {status} {class_name:30s} | {success:4d} สำเร็จ | +{upscaled} -{downscaled} ={same}")
         summary.append({
             "class": class_name,
             "success": success,
@@ -186,7 +186,7 @@ def process_dataset(raw_dir, output_dir, target_size=640, preview_count=0):
     print("=" * 60)
 
     if total_fail > 0:
-        print(f"\n⚠ พบ {total_fail} รูปที่ประมวลผลล้มเหลว — ตรวจสอบข้อมูลด้านบน")
+        print(f"\n[WARN] พบ {total_fail} รูปที่ประมวลผลล้มเหลว — ตรวจสอบข้อมูลด้านบน")
 
     return summary
 

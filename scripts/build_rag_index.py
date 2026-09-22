@@ -98,7 +98,7 @@ def build_bm25_stats(all_texts):
 # ============================================================
 print(f"ตรวจสอบ Index '{INDEX_NAME}'...")
 if INDEX_NAME in pc.list_indexes().names():
-    print(f"  ⚠️  ลบ Index เก่า '{INDEX_NAME}' เพื่อสร้างใหม่แบบ Hybrid...")
+    print(f"  [WARN] ลบ Index เก่า '{INDEX_NAME}' เพื่อสร้างใหม่แบบ Hybrid...")
     pc.delete_index(INDEX_NAME)
     time.sleep(5)  # รอให้ลบเสร็จ
 
@@ -112,7 +112,7 @@ pc.create_index(
 # รอให้สร้าง index เสร็จ
 while not pc.describe_index(INDEX_NAME).status['ready']:
     time.sleep(1)
-print(f"  ✅ Index '{INDEX_NAME}' พร้อมใช้งาน!")
+print(f"  [SUCCESS] Index '{INDEX_NAME}' พร้อมใช้งาน!")
 
 index = pc.Index(INDEX_NAME)
 
@@ -147,7 +147,7 @@ for file_path in md_files:
     
     # แบ่ง chunk
     chunks = markdown_splitter.create_documents([content])
-    print(f"  📄 {filename}: ได้ {len(chunks)} chunks")
+    print(f"  [DOC] {filename}: ได้ {len(chunks)} chunks")
     
     for i, chunk in enumerate(chunks):
         # === Context Enrichment: แปะชื่อโรคที่หัว Chunk ทุกก้อน ===
@@ -172,7 +172,7 @@ print(f"\nรวมทั้งหมด {len(all_chunks)} chunks (Enriched)")
 # ============================================================
 print("กำลังสร้างสถิติ BM25 จากข้อมูลโรคข้าว...")
 doc_freq, num_docs, avg_dl = build_bm25_stats(all_texts_for_bm25)
-print(f"  ✅ BM25 Stats: {num_docs} docs, avg_dl={avg_dl:.0f} tokens, vocab_size={len(doc_freq)}")
+print(f"  [SUCCESS] BM25 Stats: {num_docs} docs, avg_dl={avg_dl:.0f} tokens, vocab_size={len(doc_freq)}")
 
 # บันทึกสถิติ BM25 ไว้สำหรับ query time
 import json
@@ -184,7 +184,7 @@ bm25_stats = {
 }
 with open(bm25_stats_path, 'w', encoding='utf-8') as f:
     json.dump(bm25_stats, f, ensure_ascii=False)
-print(f"  💾 BM25 stats บันทึกไว้ที่: {bm25_stats_path}")
+print(f"  [SAVE] BM25 stats บันทึกไว้ที่: {bm25_stats_path}")
 
 # ============================================================
 # 7. สร้าง Dense + Sparse Embeddings และ Upsert ไปยัง Pinecone
@@ -224,7 +224,7 @@ for i in range(0, len(all_chunks), batch_size):
     index.upsert(vectors=vectors)
     print(f"  อัปโหลด Chunks {i+1} ถึง {min(i + batch_size, len(all_chunks))} เรียบร้อยแล้ว")
 
-print("\n✅ การสร้าง Hybrid Vector Database เสร็จสมบูรณ์!")
+print("\n[SUCCESS] การสร้าง Hybrid Vector Database เสร็จสมบูรณ์!")
 print(f"   Index: '{INDEX_NAME}' | Metric: dotproduct | Chunks: {len(all_chunks)}")
 print(f"   Features: Dense (Gemini) + Sparse (BM25) + Context Enrichment + Metadata")
 print(f"   สามารถเข้าไปตรวจสอบได้ที่ Pinecone Console")

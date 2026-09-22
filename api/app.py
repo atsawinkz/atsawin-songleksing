@@ -80,7 +80,7 @@ def find_model_path():
     return "rtdetr-l.pt"
 
 MODEL_PATH = find_model_path()
-print(f"📦 Loading RT-DETR Model from: {MODEL_PATH}")
+print(f"Loading RT-DETR Model from: {MODEL_PATH}")
 model = RTDETR(MODEL_PATH)
 
 

@@ -23,7 +23,7 @@ load_dotenv()
 
 def print_section(title):
     print("\n" + "=" * 60)
-    print(f"🔹 {title}")
+    print(f"=== {title} ===")
     print("=" * 60)
 
 def check_system_info():
@@ -54,7 +54,7 @@ def check_cuda_and_pytorch():
         import torch
         print(f"• PyTorch Version : {torch.__version__}")
         cuda_available = torch.cuda.is_available()
-        print(f"• CUDA Available  : {'✅ YES' if cuda_available else '❌ NO (CPU Mode)'}")
+        print(f"• CUDA Available  : {'[PASS] YES' if cuda_available else '[FAIL] NO (CPU Mode)'}")
         
         if cuda_available:
             device_name = torch.cuda.get_device_name(0)
@@ -66,11 +66,11 @@ def check_cuda_and_pytorch():
             # ทดสอบ Tensor พื้นฐานบน CUDA
             x = torch.randn(1000, 1000, device='cuda')
             y = torch.matmul(x, x)
-            print("• CUDA Tensor Ops : ✅ PASS (ความสามารถในการคำนวณ GPU ปกติ)")
+            print("• CUDA Tensor Ops : [PASS] (ความสามารถในการคำนวณ GPU ปกติ)")
         else:
-            print("⚠️ คำเตือน: PyTorch ตรวจไม่พบ CUDA บนเครื่องนี้ หากรันบน Jetson ควรใช้ PyTorch ที่บิลด์มากับ JetPack")
+            print("[WARNING] คำเตือน: PyTorch ตรวจไม่พบ CUDA บนเครื่องนี้ หากรันบน Jetson ควรใช้ PyTorch ที่บิลด์มากับ JetPack")
     except ImportError:
-        print("❌ ไม่พบ PyTorch ในสภาพแวดล้อมนี้ กรุณาติดตั้ง PyTorch")
+        print("[FAIL] ไม่พบ PyTorch ในสภาพแวดล้อมนี้ กรุณาติดตั้ง PyTorch")
 
 def check_model_benchmark():
     print_section("3. ตรวจสอบและวัดความเร็วโมเดล RT-DETR-L")
@@ -102,7 +102,7 @@ def check_model_benchmark():
                     break
                 
         if not target_model:
-            print("❌ ไม่พบไฟล์โมเดล (.engine, .pt, หรือ .onnx)")
+            print("[FAIL] ไม่พบไฟล์โมเดล (.engine, .pt, หรือ .onnx)")
             return
             
         print(f"• กำลังโหลดโมเดล : {target_model} ({model_type})")
@@ -131,12 +131,12 @@ def check_model_benchmark():
         print(f"• ค่าเฉลี่ย Latency : {avg_time:.2f} ms ต่อภาพ")
         print(f"• Throughput (FPS) : {fps:.1f} FPS")
         if avg_time < 30.0:
-            print("• สถานะประสิทธิภาพ : 🟢 ยอดเยี่ยม (Real-time Deployment Ready)")
+            print("• สถานะประสิทธิภาพ : [OK] ยอดเยี่ยม (Real-time Deployment Ready)")
         else:
-            print("• สถานะประสิทธิภาพ : 🟡 พอใช้ได้ (แนะนำแปลงเป็น .engine สำหรับความเร็วสูงสุด)")
+            print("• สถานะประสิทธิภาพ : [WARN] พอใช้ได้ (แนะนำแปลงเป็น .engine สำหรับความเร็วสูงสุด)")
             
     except Exception as e:
-        print(f"❌ เกิดข้อผิดพลาดในการรัน Benchmark โมเดล: {e}")
+        print(f"[FAIL] เกิดข้อผิดพลาดในการรัน Benchmark โมเดล: {e}")
 
 def check_cloud_rag_apis():
     print_section("4. ตรวจสอบการเชื่อมต่อระบบ RAG (Gemini & Pinecone)")
@@ -144,9 +144,9 @@ def check_cloud_rag_apis():
     # 4.1 ตรวจสอบ Gemini API
     gemini_key = os.getenv('GEMINI_API_KEY', '')
     if not gemini_key:
-        print("• Gemini API Key  : ❌ ไม่พบใน .env (GEMINI_API_KEY)")
+        print("• Gemini API Key  : [FAIL] ไม่พบใน .env (GEMINI_API_KEY)")
     else:
-        print(f"• Gemini API Key  : ✅ พร้อมใช้งาน (ขึ้นต้นด้วย {gemini_key[:6]}...)")
+        print(f"• Gemini API Key  : [PASS] พร้อมใช้งาน (ขึ้นต้นด้วย {gemini_key[:6]}...)")
         try:
             import requests
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={gemini_key}"
@@ -154,47 +154,47 @@ def check_cloud_rag_apis():
             r = requests.post(url, json=payload, timeout=10)
             if r.status_code == 200:
                 emb_len = len(r.json().get('embedding', {}).get('values', []))
-                print(f"• Gemini Embedding: ✅ เชื่อมต่อสำเร็จ (ได้เวกเตอร์มิติ {emb_len})")
+                print(f"• Gemini Embedding: [PASS] เชื่อมต่อสำเร็จ (ได้เวกเตอร์มิติ {emb_len})")
             else:
-                print(f"• Gemini Embedding: ❌ HTTP Error {r.status_code}: {r.text}")
+                print(f"• Gemini Embedding: [FAIL] HTTP Error {r.status_code}: {r.text}")
         except Exception as e:
-            print(f"• Gemini Embedding: ❌ เกิดข้อผิดพลาด: {e}")
+            print(f"• Gemini Embedding: [FAIL] เกิดข้อผิดพลาด: {e}")
             
     # 4.2 ตรวจสอบ Pinecone
     pinecone_key = os.getenv('PINECONE_API_KEY', '')
     if not pinecone_key:
-        print("• Pinecone API Key: ❌ ไม่พบใน .env (PINECONE_API_KEY)")
+        print("• Pinecone API Key: [FAIL] ไม่พบใน .env (PINECONE_API_KEY)")
     else:
-        print(f"• Pinecone API Key: ✅ พร้อมใช้งาน (ขึ้นต้นด้วย {pinecone_key[:6]}...)")
+        print(f"• Pinecone API Key: [PASS] พร้อมใช้งาน (ขึ้นต้นด้วย {pinecone_key[:6]}...)")
         try:
             from pinecone import Pinecone
             pc = Pinecone(api_key=pinecone_key)
             index_list = [i.name for i in pc.list_indexes()]
             if 'rice-knowledge' in index_list:
-                print("• Pinecone Index  : ✅ พบดัชนี 'rice-knowledge' บนระบบ Cloud พร้อมค้นหา")
+                print("• Pinecone Index  : [PASS] พบดัชนี 'rice-knowledge' บนระบบ Cloud พร้อมค้นหา")
             else:
-                print(f"• Pinecone Index  : ⚠️ ไม่พบดัชนี 'rice-knowledge' (พบดัชนี: {index_list})")
+                print(f"• Pinecone Index  : [WARN] ไม่พบดัชนี 'rice-knowledge' (พบดัชนี: {index_list})")
         except Exception as e:
-            print(f"• Pinecone Client : ❌ เกิดข้อผิดพลาด: {e}")
+            print(f"• Pinecone Client : [FAIL] เกิดข้อผิดพลาด: {e}")
 
     # 4.3 ตรวจสอบ PyThaiNLP
     try:
         from pythainlp.tokenize import word_tokenize
         tokens = word_tokenize("โรคขอบใบแห้งในนาข้าว", engine="newmm")
-        print(f"• PyThaiNLP Token : ✅ ตัดคำสำเร็จ: {tokens}")
+        print(f"• PyThaiNLP Token : [PASS] ตัดคำสำเร็จ: {tokens}")
     except Exception as e:
-        print(f"• PyThaiNLP       : ❌ ไม่สามารถตัดคำได้: {e}")
+        print(f"• PyThaiNLP       : [FAIL] ไม่สามารถตัดคำได้: {e}")
 
 def main():
-    print("🌾" * 30)
+    print("=" * 60)
     print("  Rice Disease LINE Chatbot — Jetson AGX Orin Deployment Validator")
-    print("🌾" * 30)
+    print("=" * 60)
     check_system_info()
     check_cuda_and_pytorch()
     check_model_benchmark()
     check_cloud_rag_apis()
     print_section("สรุปผลการตรวจสอบ")
-    print("หากทุกหัวข้อขึ้นเครื่องหมาย ✅ ท่านสามารถรัน FastAPI และ n8n บน Jetson AGX Orin ได้ทันทีครับ!")
+    print("หากทุกหัวข้อขึ้นเครื่องหมาย [PASS] ท่านสามารถรัน FastAPI และ n8n บน Jetson AGX Orin ได้ทันทีครับ!")
     print("=" * 60 + "\n")
 
 if __name__ == '__main__':

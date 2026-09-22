@@ -96,12 +96,12 @@ docker compose up -d
 python api/app.py
 
 # 2. เปิดระบบ n8n Automation (หากยังไม่ได้รัน)
-cd n8n && docker compose up -d
+cd n8n && sudo docker-compose up -d   # หรือ docker compose up -d
 
 # 3. เปิดท่อ ngrok ด้วย Static Domain ถาวร
 ngrok http --url=snowsuit-baboon-zealous.ngrok-free.dev 5678
 ```
-*หมายเหตุ: เนื่องจากใช้ Static Domain URL ถาวร จึงไม่ต้องเข้าไปตั้งค่าแก้ Webhook URL บน LINE Developers ใหม่เลย*
+*หมายเหตุ: บน Jetson ให้ใช้ `sudo docker-compose up -d` และเนื่องจากใช้ Static Domain URL ถาวร จึงไม่ต้องเข้าไปตั้งค่าแก้ Webhook URL บน LINE Developers ใหม่เลย*
 
 ---
 
