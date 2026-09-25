@@ -17,6 +17,11 @@
    * ควบคุมตัวแปร (Controlled Experiment): ใช้ Hyperparameters ชุดเดียวกับ Champion Model v5 (imgsz 800, batch 16, lr0 0.0001, no mosaic) ทุกประการ
    * บันทึก Weights และ Logs ไว้ที่ `runs/rtdetr_segmented_ablation/`
 
+3. **`evaluate_segmented.py` (Step 3):**
+   * สคริปต์ทดสอบและประเมินผลบน **Test Set (354 ภาพ)** ของโมเดลที่ตัดพื้นหลังแล้ว
+   * สร้างตารางเปรียบเทียบผลลัพธ์รายโรคโดยตรงกับ **Champion Model v5** พร้อมคำนวณผลต่าง (+/-)
+   * บันทึกผลคะแนนและกราฟลงใน `runs/rtdetr_segmented_ablation/ablation_test_results.txt`
+
 ---
 
 ## ขั้นตอนการรันบนเครื่อง NVIDIA GeForce RTX 4090
@@ -30,4 +35,7 @@ python3 batch_segment_sam.py
 
 # 3. สั่งเทรน RT-DETR บนชุดข้อมูลที่ตัดพื้นหลังแล้ว
 python3 train_segmented_rtdetr.py
+
+# 4. เมื่อเทรนเสร็จแล้ว สั่งประเมินผลบน Test Set เปรียบเทียบกับ Champion v5 ทันที
+python3 evaluate_segmented.py
 ```
