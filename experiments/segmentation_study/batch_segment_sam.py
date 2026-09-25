@@ -53,6 +53,23 @@ def parse_yolo_bboxes(label_path: Path, img_w: int, img_h: int):
                     bboxes.append([x1, y1, x2, y2])
     return bboxes
 
+def find_prominent_vegetation_bbox(img_bgr, min_ratio: float = 0.10):
+    """
+    Locates the prominent green rice plant/leaf in images without bounding boxes (e.g. Healthy leaves).
+    Returns [x1, y1, x2, y2] bounding box or None if no clear vegetation contour found.
+    """
+    h, w = img_bgr.shape[:2]
+    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    # Target green rice foliage hue: 25 to 85, saturation > 35, value > 35
+    green_mask = cv2.inRange(hsv, (25, 35, 35), (85, 255, 255))
+    contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        c = max(contours, key=cv2.contourArea)
+        x, y, bw, bh = cv2.boundingRect(c)
+        if (bw * bh) / (w * h) >= min_ratio:
+            return [x, y, x + bw, y + bh]
+    return None
+
 def process_split(split_name: str, src_split_dir: Path, dest_split_dir: Path, model, device: str):
     src_images_dir = src_split_dir / "images"
     src_labels_dir = src_split_dir / "labels"
@@ -98,13 +115,33 @@ def process_split(split_name: str, src_split_dir: Path, dest_split_dir: Path, mo
 
                 bboxes = parse_yolo_bboxes(src_label_path, w, h)
 
-                # Segment with SAM using BBox prompts
+                # Segment with SAM using Enclosing BBox or Point prompts to capture the whole leaf
                 if bboxes:
-                    results = model(img_bgr, bboxes=bboxes, device=device, verbose=False)
+                    min_x = max(0, min(b[0] for b in bboxes) - 10)
+                    min_y = max(0, min(b[1] for b in bboxes) - 10)
+                    max_x = min(w, max(b[2] for b in bboxes) + 10)
+                    max_y = min(h, max(b[3] for b in bboxes) + 10)
+                    enc_box = [min_x, min_y, max_x, max_y]
+
+                    box_area_ratio = ((max_x - min_x) * (max_y - min_y)) / (w * h)
+                    if box_area_ratio < 0.03:
+                        # Single tiny spot (< 3% of image): prompt with point at lesion center to capture the leaf body
+                        cx = (min_x + max_x) // 2
+                        cy = (min_y + max_y) // 2
+                        results = model(img_bgr, points=[[cx, cy]], labels=[1], device=device, verbose=False)
+                    else:
+                        # Enclosing bounding box covering all lesions across the leaf
+                        results = model(img_bgr, bboxes=[enc_box], device=device, verbose=False)
                 else:
-                    # Fallback if no bboxes: prompt at image center
-                    center_point = [[w // 2, h // 2]]
-                    results = model(img_bgr, points=center_point, labels=[1], device=device, verbose=False)
+                    # For images without disease bboxes (Healthy rice leaves):
+                    # Locate prominent green foliage to avoid mud/gap center points
+                    veg_bbox = find_prominent_vegetation_bbox(img_bgr)
+                    if veg_bbox:
+                        results = model(img_bgr, bboxes=[veg_bbox], device=device, verbose=False)
+                    else:
+                        # Fallback to image center point
+                        center_point = [[w // 2, h // 2]]
+                        results = model(img_bgr, points=center_point, labels=[1], device=device, verbose=False)
 
                 # Combine predicted masks
                 final_mask = np.zeros((h, w), dtype=bool)
