@@ -26,8 +26,8 @@
 cd experiments/segmentation_study
 
 # 2. ตัดพื้นหลัง Dataset ทั้งหมดด้วย SAM (~3-5 นาที)
-python batch_segment_sam.py
+python3 batch_segment_sam.py
 
 # 3. สั่งเทรน RT-DETR บนชุดข้อมูลที่ตัดพื้นหลังแล้ว
-python train_segmented_rtdetr.py
+python3 train_segmented_rtdetr.py
 ```
