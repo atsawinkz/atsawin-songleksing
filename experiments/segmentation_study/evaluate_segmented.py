@@ -4,7 +4,8 @@ Evaluates best.pt on the Segmented Test Set (354 images) and compares with Champ
 To be executed on NVIDIA GeForce RTX 4090 or local machine.
 """
 import os
-import glob
+import sys
+import argparse
 from pathlib import Path
 from ultralytics import RTDETR
 
@@ -15,7 +16,10 @@ V5_BENCHMARK = {
     "leaf_blast": 0.655,
     "leaf_scald": 0.848,
     "sheath_blight": 0.871,
-    "all": 0.706
+    "all": 0.706,
+    "map": 0.355,
+    "precision": 0.735,
+    "recall": 0.702
 }
 
 def find_segmented_weights(script_dir: Path):
@@ -35,42 +39,58 @@ def find_segmented_weights(script_dir: Path):
     return None
 
 def main():
+    parser = argparse.ArgumentParser(description="Evaluate RT-DETR Segmented Model on Test Set")
+    parser.add_argument('--weights', type=str, default=None, help="Path to best.pt")
+    parser.add_argument('--data', type=str, default=None, help="Path to data.yaml")
+    parser.add_argument('--imgsz', type=int, default=800, help="Image size (default: 800)")
+    parser.add_argument('--device', type=str, default=None, help="Device (default: auto)")
+    args = parser.parse_args()
+
     script_dir = Path(__file__).resolve().parent
     os.chdir(script_dir)
 
-    dataset_yaml = script_dir / "dataset_segmented" / "data.yaml"
+    dataset_yaml = Path(args.data).resolve() if args.data else (script_dir / "dataset_segmented" / "data.yaml")
     if not dataset_yaml.exists():
         raise FileNotFoundError(f"Segmented dataset config not found at: {dataset_yaml}")
 
-    weights_path = find_segmented_weights(script_dir)
-    if not weights_path:
+    if args.weights:
+        weights_path = Path(args.weights).resolve()
+    else:
+        weights_path = find_segmented_weights(script_dir)
+
+    if not weights_path or not weights_path.exists():
         raise FileNotFoundError(
             "Could not find 'best.pt' in runs/rtdetr_segmented_ablation/weights/. "
             "Please ensure train_segmented_rtdetr.py has finished training."
         )
 
-    print("=" * 70)
+    print("=" * 80)
     print("RT-DETR-L Segmented Model Evaluation on Test Set (Ablation Study)")
-    print("=" * 70)
+    print("=" * 80)
     print(f"Target Weights : {weights_path}")
     print(f"Dataset Config : {dataset_yaml}")
-    print("=" * 70)
+    print(f"Image Size     : {args.imgsz}")
+    print("=" * 80)
 
     model = RTDETR(str(weights_path))
 
-    # Evaluate strictly on the Test Set (split='test') at imgsz=800
-    print("\nEvaluating on Test Set (split='test', imgsz=800)...")
     run_dir = weights_path.parent.parent
-    metrics = model.val(
-        data=str(dataset_yaml),
-        split='test',
-        imgsz=800,
-        project=str(run_dir),
-        name='eval_test',
-        exist_ok=True
-    )
+    eval_kwargs = {
+        "data": str(dataset_yaml),
+        "split": 'test',
+        "imgsz": args.imgsz,
+        "project": str(run_dir),
+        "name": 'eval_test',
+        "exist_ok": True,
+        "save_json": False,
+        "plots": True
+    }
+    if args.device is not None:
+        eval_kwargs["device"] = args.device
 
-    # Class mappings
+    print(f"\nEvaluating on Test Set (split='test', imgsz={args.imgsz})...")
+    metrics = model.val(**eval_kwargs)
+
     names = model.names if hasattr(model, 'names') else {
         0: 'bacterial_leaf_blight',
         1: 'brown_spot',
@@ -79,12 +99,28 @@ def main():
         4: 'sheath_blight'
     }
 
-    # Extract per-class mAP50
+    # Extract per-class metrics accurately
     class_map50 = {}
-    if hasattr(metrics.box, 'maps') and metrics.box.maps is not None:
-        for idx, ap50 in enumerate(metrics.box.maps):
+    class_map = {}
+    class_p = {}
+    class_r = {}
+
+    if hasattr(metrics.box, 'ap_class_index') and len(metrics.box.ap_class_index) > 0:
+        for i, c in enumerate(metrics.box.ap_class_index):
+            c_name = names.get(c, f"class_{c}")
+            p, r, ap50, ap = metrics.box.class_result(i)
+            class_map50[c_name] = float(ap50)
+            class_p[c_name] = float(p)
+            class_r[c_name] = float(r)
+            class_map[c_name] = float(ap)
+    elif hasattr(metrics.box, 'ap50') and len(metrics.box.ap50) > 0:
+        for idx, ap50 in enumerate(metrics.box.ap50):
             c_name = names.get(idx, f"class_{idx}")
             class_map50[c_name] = float(ap50)
+    elif hasattr(metrics.box, 'maps') and metrics.box.maps is not None:
+        for idx, ap in enumerate(metrics.box.maps):
+            c_name = names.get(idx, f"class_{idx}")
+            class_map50[c_name] = float(ap)
 
     overall_map50 = float(metrics.box.map50)
     overall_map = float(metrics.box.map)
@@ -93,11 +129,11 @@ def main():
 
     # Build comparison summary
     lines = []
-    lines.append("=" * 75)
+    lines.append("=" * 80)
     lines.append("Ablation Study Comparison: Champion Model v5 vs Segmented-First Model")
-    lines.append("=" * 75)
+    lines.append("=" * 80)
     lines.append(f"{'Disease Class':<25} | {'Champion v5 (mAP50)':<20} | {'Segmented (mAP50)':<18} | {'Diff'}")
-    lines.append("-" * 75)
+    lines.append("-" * 80)
 
     for c_id in sorted(names.keys()):
         c_name = names[c_id]
@@ -109,12 +145,19 @@ def main():
 
     all_diff = overall_map50 - V5_BENCHMARK['all']
     all_sign = "+" if all_diff >= 0 else ""
-    lines.append("-" * 75)
+    p_diff = precision - V5_BENCHMARK['precision']
+    p_sign = "+" if p_diff >= 0 else ""
+    r_diff = recall - V5_BENCHMARK['recall']
+    r_sign = "+" if r_diff >= 0 else ""
+    map_diff = overall_map - V5_BENCHMARK['map']
+    map_sign = "+" if map_diff >= 0 else ""
+
+    lines.append("-" * 80)
     lines.append(f"{'OVERALL (mAP@0.5)':<25} | {V5_BENCHMARK['all']*100:>18.2f}% | {overall_map50*100:>16.2f}% | {all_sign}{all_diff*100:.2f}%")
-    lines.append(f"{'mAP@0.5:0.95':<25} | {'-':>19} | {overall_map*100:>16.2f}% | -")
-    lines.append(f"{'Precision':<25} | {'-':>19} | {precision*100:>16.2f}% | -")
-    lines.append(f"{'Recall':<25} | {'-':>19} | {recall*100:>16.2f}% | -")
-    lines.append("=" * 75)
+    lines.append(f"{'mAP@0.5:0.95':<25} | {V5_BENCHMARK['map']*100:>18.2f}% | {overall_map*100:>16.2f}% | {map_sign}{map_diff*100:.2f}%")
+    lines.append(f"{'Precision':<25} | {V5_BENCHMARK['precision']*100:>18.2f}% | {precision*100:>16.2f}% | {p_sign}{p_diff*100:.2f}%")
+    lines.append(f"{'Recall':<25} | {V5_BENCHMARK['recall']*100:>18.2f}% | {recall*100:>16.2f}% | {r_sign}{r_diff*100:.2f}%")
+    lines.append("=" * 80)
 
     summary_text = "\n".join(lines)
     print("\n" + summary_text)
