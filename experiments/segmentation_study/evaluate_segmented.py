@@ -1,12 +1,8 @@
-"""
-Evaluation Script for Segmented Rice Leaf RT-DETR Model (Ablation Study)
-Evaluates best.pt on the Segmented Test Set (354 images) and compares with Champion Model v5.
-To be executed on NVIDIA GeForce RTX 4090 or local machine.
-"""
 import os
+import glob
 import sys
 import argparse
-from pathlib import Path
+from datetime import datetime
 from ultralytics import RTDETR
 
 # Champion Model v5 Benchmark Metrics (on Test Set)
@@ -17,80 +13,68 @@ V5_BENCHMARK = {
     "leaf_scald": 0.848,
     "sheath_blight": 0.871,
     "all": 0.706,
-    "map": 0.355,
-    "precision": 0.735,
-    "recall": 0.702
+    "map": 0.3554,
+    "precision": 0.7351,
+    "recall": 0.7017
 }
 
-def find_segmented_weights(script_dir: Path):
-    candidate_paths = [
-        script_dir / "runs" / "rtdetr_segmented_ablation" / "weights" / "best.pt",
-        script_dir / "runs" / "weights" / "best.pt",
-    ]
-    for p in candidate_paths:
-        if p.exists():
-            return p
-            
-    files = list(script_dir.glob("**/best.pt"))
-    if files:
-        files.sort(key=os.path.getmtime, reverse=True)
-        return files[0]
-        
-    return None
+def get_target_model_path(specific_run=None):
+    # กรณีผู้ใช้ระบุโฟลเดอร์หรือไฟล์ weights มาโดยตรง
+    if specific_run:
+        if os.path.isfile(specific_run):
+            return specific_run
+        target_pt = os.path.join(specific_run, 'weights', 'best.pt')
+        if os.path.exists(target_pt):
+            return target_pt
+
+    # ค้นหาไฟล์ best.pt ทั้งหมดในโฟลเดอร์การทดลองนี้
+    best_pt_files = glob.glob("**/weights/best.pt", recursive=True)
+    if not best_pt_files:
+        return None
+
+    # เรียงลำดับไฟล์ตามเวลาที่บันทึกล่าสุด (Timestamp ใหม่ที่สุด)
+    best_pt_files.sort(key=os.path.getmtime, reverse=True)
+    return best_pt_files[0]
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate RT-DETR Segmented Model on Test Set")
-    parser.add_argument('--weights', type=str, default=None, help="Path to best.pt")
-    parser.add_argument('--data', type=str, default=None, help="Path to data.yaml")
-    parser.add_argument('--imgsz', type=int, default=800, help="Image size (default: 800)")
-    parser.add_argument('--device', type=str, default=None, help="Device (default: auto)")
+    parser = argparse.ArgumentParser(description="Evaluate RT-DETR Model on Test Set and Export ONNX")
+    parser.add_argument('--run', type=str, default=None, help="Path to run folder or weights (e.g. runs/rtdetr_segmented_ablation)")
+    parser.add_argument('--data', type=str, default=None, help="Path to dataset yaml (default: dataset_segmented/data.yaml)")
+    parser.add_argument('--imgsz', type=int, default=800, help="Image size for evaluation (default: 800)")
     args = parser.parse_args()
 
-    script_dir = Path(__file__).resolve().parent
-    os.chdir(script_dir)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(current_dir)
+    weights_path = get_target_model_path(args.run)
 
-    dataset_yaml = Path(args.data).resolve() if args.data else (script_dir / "dataset_segmented" / "data.yaml")
-    if not dataset_yaml.exists():
-        raise FileNotFoundError(f"Segmented dataset config not found at: {dataset_yaml}")
+    if not weights_path or not os.path.exists(weights_path):
+        print("Error: ไม่พบไฟล์ best.pt ในระบบ (กรุณาตรวจสอบว่าการเทรนเสร็จสิ้นเรียบร้อยแล้ว)")
+        return
 
-    if args.weights:
-        weights_path = Path(args.weights).resolve()
+    latest_run = os.path.dirname(os.path.dirname(os.path.abspath(weights_path)))
+    
+    if args.data:
+        data_yaml = args.data if os.path.isabs(args.data) else os.path.join(current_dir, args.data)
     else:
-        weights_path = find_segmented_weights(script_dir)
+        data_yaml = os.path.join(current_dir, 'dataset_segmented', 'data.yaml')
+        
+    mod_time = datetime.fromtimestamp(os.path.getmtime(weights_path)).strftime('%Y-%m-%d %H:%M:%S')
 
-    if not weights_path or not weights_path.exists():
-        raise FileNotFoundError(
-            "Could not find 'best.pt' in runs/rtdetr_segmented_ablation/weights/. "
-            "Please ensure train_segmented_rtdetr.py has finished training."
-        )
+    print("=========================================================")
+    print(f"Target Model:    {weights_path}")
+    print(f"Dataset Config:  {data_yaml}")
+    print(f"Saved Timestamp: {mod_time}")
+    print(f"Run Folder:      {latest_run}")
+    print("=========================================================")
 
-    print("=" * 80)
-    print("RT-DETR-L Segmented Model Evaluation on Test Set (Ablation Study)")
-    print("=" * 80)
-    print(f"Target Weights : {weights_path}")
-    print(f"Dataset Config : {dataset_yaml}")
-    print(f"Image Size     : {args.imgsz}")
-    print("=" * 80)
+    # โหลดโมเดลที่ดีที่สุดจากการเทรน
+    model = RTDETR(weights_path)
 
-    model = RTDETR(str(weights_path))
+    # 1. ประเมินผลบนชุดข้อมูลทดสอบ (Test Set)
+    print("\n--- Evaluating on Test Set ---")
+    metrics = model.val(data=data_yaml, split='test', imgsz=args.imgsz, project=latest_run, name='eval_test', exist_ok=True)
 
-    run_dir = weights_path.parent.parent
-    eval_kwargs = {
-        "data": str(dataset_yaml),
-        "split": 'test',
-        "imgsz": args.imgsz,
-        "project": str(run_dir),
-        "name": 'eval_test',
-        "exist_ok": True,
-        "save_json": False,
-        "plots": True
-    }
-    if args.device is not None:
-        eval_kwargs["device"] = args.device
-
-    print(f"\nEvaluating on Test Set (split='test', imgsz={args.imgsz})...")
-    metrics = model.val(**eval_kwargs)
-
+    # ดึงค่าผลลัพธ์รายโรค
     names = model.names if hasattr(model, 'names') else {
         0: 'bacterial_leaf_blight',
         1: 'brown_spot',
@@ -99,75 +83,60 @@ def main():
         4: 'sheath_blight'
     }
 
-    # Extract per-class metrics accurately
     class_map50 = {}
-    class_map = {}
-    class_p = {}
-    class_r = {}
-
     if hasattr(metrics.box, 'ap_class_index') and len(metrics.box.ap_class_index) > 0:
         for i, c in enumerate(metrics.box.ap_class_index):
             c_name = names.get(c, f"class_{c}")
-            p, r, ap50, ap = metrics.box.class_result(i)
-            class_map50[c_name] = float(ap50)
-            class_p[c_name] = float(p)
-            class_r[c_name] = float(r)
-            class_map[c_name] = float(ap)
+            class_map50[c_name] = float(metrics.box.class_result(i)[2])
     elif hasattr(metrics.box, 'ap50') and len(metrics.box.ap50) > 0:
         for idx, ap50 in enumerate(metrics.box.ap50):
             c_name = names.get(idx, f"class_{idx}")
             class_map50[c_name] = float(ap50)
-    elif hasattr(metrics.box, 'maps') and metrics.box.maps is not None:
-        for idx, ap in enumerate(metrics.box.maps):
-            c_name = names.get(idx, f"class_{idx}")
-            class_map50[c_name] = float(ap)
 
-    overall_map50 = float(metrics.box.map50)
-    overall_map = float(metrics.box.map)
-    precision = float(metrics.box.mp)
-    recall = float(metrics.box.mr)
+    # ปริ้นท์และบันทึกค่า Metric หลักลงไฟล์ (รูปแบบมาตรฐานเดียวกับ evaluate_model.py)
+    result_text = (
+        f"--- Evaluation Results on Test Set ---\n"
+        f"Model:     {weights_path}\n"
+        f"Timestamp: {mod_time}\n"
+        f"mAP50-95:  {metrics.box.map:.4f}\n"
+        f"mAP50:     {metrics.box.map50:.4f}\n"
+        f"Precision: {metrics.box.mp:.4f}\n"
+        f"Recall:    {metrics.box.mr:.4f}\n"
+        f"-----------------------------------------"
+    )
+    print("\n" + result_text)
 
-    # Build comparison summary
-    lines = []
-    lines.append("=" * 80)
-    lines.append("Ablation Study Comparison: Champion Model v5 vs Segmented-First Model")
-    lines.append("=" * 80)
-    lines.append(f"{'Disease Class':<25} | {'Champion v5 (mAP50)':<20} | {'Segmented (mAP50)':<18} | {'Diff'}")
-    lines.append("-" * 80)
-
+    # เพิ่มตารางเปรียบเทียบกับ Champion Model v5
+    comp_lines = []
+    comp_lines.append("\n--- Ablation Comparison: Champion v5 vs Segmented Model ---")
+    comp_lines.append(f"{'Disease Class':<25} | {'Champion v5':<12} | {'Segmented':<12} | {'Diff'}")
+    comp_lines.append("-" * 65)
     for c_id in sorted(names.keys()):
         c_name = names[c_id]
         v5_score = V5_BENCHMARK.get(c_name, 0.0)
         seg_score = class_map50.get(c_name, 0.0)
         diff = seg_score - v5_score
         sign = "+" if diff >= 0 else ""
-        lines.append(f"{c_name:<25} | {v5_score*100:>18.2f}% | {seg_score*100:>16.2f}% | {sign}{diff*100:.2f}%")
-
-    all_diff = overall_map50 - V5_BENCHMARK['all']
+        comp_lines.append(f"{c_name:<25} | {v5_score*100:>10.2f}% | {seg_score*100:>10.2f}% | {sign}{diff*100:.2f}%")
+    all_diff = float(metrics.box.map50) - V5_BENCHMARK['all']
     all_sign = "+" if all_diff >= 0 else ""
-    p_diff = precision - V5_BENCHMARK['precision']
-    p_sign = "+" if p_diff >= 0 else ""
-    r_diff = recall - V5_BENCHMARK['recall']
-    r_sign = "+" if r_diff >= 0 else ""
-    map_diff = overall_map - V5_BENCHMARK['map']
-    map_sign = "+" if map_diff >= 0 else ""
+    comp_lines.append("-" * 65)
+    comp_lines.append(f"{'OVERALL (mAP@0.5)':<25} | {V5_BENCHMARK['all']*100:>10.2f}% | {metrics.box.map50*100:>10.2f}% | {all_sign}{all_diff*100:.2f}%")
+    comp_lines.append("=" * 65)
+    comp_text = "\n".join(comp_lines)
+    print(comp_text)
+    
+    # เซฟไฟล์ไว้ในโฟลเดอร์เทรนรอบนั้นๆ
+    result_file = os.path.join(latest_run, 'test_results.txt')
+    with open(result_file, 'w', encoding='utf-8') as f:
+        f.write(result_text + "\n" + comp_text + "\n")
 
-    lines.append("-" * 80)
-    lines.append(f"{'OVERALL (mAP@0.5)':<25} | {V5_BENCHMARK['all']*100:>18.2f}% | {overall_map50*100:>16.2f}% | {all_sign}{all_diff*100:.2f}%")
-    lines.append(f"{'mAP@0.5:0.95':<25} | {V5_BENCHMARK['map']*100:>18.2f}% | {overall_map*100:>16.2f}% | {map_sign}{map_diff*100:.2f}%")
-    lines.append(f"{'Precision':<25} | {V5_BENCHMARK['precision']*100:>18.2f}% | {precision*100:>16.2f}% | {p_sign}{p_diff*100:.2f}%")
-    lines.append(f"{'Recall':<25} | {V5_BENCHMARK['recall']*100:>18.2f}% | {recall*100:>16.2f}% | {r_sign}{r_diff*100:.2f}%")
-    lines.append("=" * 80)
+    print(f"\nบันทึกตัวเลขคะแนนลงไฟล์ {result_file} เรียบร้อยแล้ว")
 
-    summary_text = "\n".join(lines)
-    print("\n" + summary_text)
-
-    # Save to file
-    out_file = run_dir / "ablation_test_results.txt"
-    with open(out_file, "w", encoding="utf-8") as f:
-        f.write(summary_text)
-
-    print(f"\nResults successfully saved to: {out_file}")
+    # 2. Export โมเดลเป็น ONNX สำหรับนำไปรันบน Jetson / FastAPI
+    print("\n--- Exporting to ONNX for Deployment ---")
+    path = model.export(format='onnx', imgsz=640, half=True, simplify=True)
+    print(f"Export เสร็จสมบูรณ์! ไฟล์ ONNX ถูกบันทึกที่: {path}")
 
 if __name__ == '__main__':
     main()
