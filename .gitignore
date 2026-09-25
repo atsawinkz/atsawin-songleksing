@@ -5,12 +5,19 @@ data/labeled/
 data/labeled_datacentric-blb/
 experiments/segmentation_study/dataset_segmented/
 
+# Training Runs & Model Weights
+runs/
+training/runs/
+experiments/segmentation_study/runs/
+*.pt
+*.onnx
+*.engine
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.zip
-*.pt
 venv/
 .env
 
@@ -18,6 +25,3 @@ venv/
 .vscode/
 .idea/
 *.swp
-
-# env
-.env
