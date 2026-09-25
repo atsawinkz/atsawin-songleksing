@@ -53,7 +53,7 @@ def parse_yolo_bboxes(label_path: Path, img_w: int, img_h: int):
                     bboxes.append([x1, y1, x2, y2])
     return bboxes
 
-def find_prominent_vegetation_bbox(img_bgr, min_ratio: float = 0.10):
+def find_prominent_vegetation_bbox(img_bgr, min_ratio: float = 0.05):
     """
     Locates the prominent green rice plant/leaf in images without bounding boxes (e.g. Healthy leaves).
     Returns [x1, y1, x2, y2] bounding box or None if no clear vegetation contour found.
@@ -124,8 +124,8 @@ def process_split(split_name: str, src_split_dir: Path, dest_split_dir: Path, mo
                     enc_box = [min_x, min_y, max_x, max_y]
 
                     box_area_ratio = ((max_x - min_x) * (max_y - min_y)) / (w * h)
-                    if box_area_ratio < 0.03:
-                        # Single tiny spot (< 3% of image): prompt with point at lesion center to capture the leaf body
+                    if box_area_ratio < 0.015:
+                        # Single tiny spot (< 1.5% of image): prompt with point at lesion center to capture the leaf body
                         cx = (min_x + max_x) // 2
                         cy = (min_y + max_y) // 2
                         results = model(img_bgr, points=[[cx, cy]], labels=[1], device=device, verbose=False)
@@ -153,9 +153,9 @@ def process_split(split_name: str, src_split_dir: Path, dest_split_dir: Path, mo
                             m = cv2.resize(m.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
                         final_mask = np.logical_or(final_mask, m > 0.5)
 
-                # Safety Guardrail: if mask captures < 5% of image, fallback to original
+                # Safety Guardrail: if mask captures < 2% of image, fallback to original
                 mask_ratio = np.count_nonzero(final_mask) / (h * w)
-                if mask_ratio < 0.05:
+                if mask_ratio < 0.02:
                     # Keep original image to avoid blank black-screen corruption
                     cv2.imwrite(str(out_img_path), img_bgr)
                 else:

@@ -9,7 +9,7 @@
 1. **`batch_segment_sam.py` (Step 1):**
    * สคริปต์ตัดพื้นหลังภาพแปลงนาออกเป็นสีดำด้วย **Meta Segment Anything Model (MobileSAM)**
    * ใช้ Bounding Box ของรอยโรคใน `data/labeled_datacentric-blb` เป็น Prompt นำทาง เพื่อรับประกันว่ารอยโรคและใบข้าวจะไม่ถูกลบหาย
-   * มี Safety Guardrail ป้องกันภาพจอดำ (< 5% non-black fallback to original)
+   * มี Safety Guardrail ป้องกันภาพจอดำ (< 2% non-black fallback to original)
    * บันทึกผลลัพธ์ไว้ที่ `dataset_segmented/` พร้อมสร้าง `data.yaml` อัตโนมัติ
 
 2. **`train_segmented_rtdetr.py` (Step 2):**

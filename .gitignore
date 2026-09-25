@@ -3,6 +3,7 @@ data/raw/
 data/processed/
 data/labeled/
 data/labeled_datacentric-blb/
+experiments/segmentation_study/dataset_segmented/
 
 # Python
 __pycache__/
