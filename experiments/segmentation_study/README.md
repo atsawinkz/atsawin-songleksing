@@ -20,7 +20,7 @@
 3. **`evaluate_segmented.py` (Step 3):**
    * สคริปต์ทดสอบและประเมินผลบน **Test Set (354 ภาพ)** ของโมเดลที่ตัดพื้นหลังแล้ว
    * สร้างตารางเปรียบเทียบผลลัพธ์รายโรคโดยตรงกับ **Champion Model v5** พร้อมคำนวณผลต่าง (+/-)
-   * บันทึกผลคะแนนและกราฟลงใน `runs/rtdetr_segmented_ablation/ablation_test_results.txt`
+   * บันทึกผลคะแนนและกราฟลงใน `runs/rtdetr_segmented_ablation/test_results.txt` (และโฟลเดอร์ `eval_test/`)
 
 ---
 
