@@ -20,7 +20,7 @@ load_dotenv()
 
 app = FastAPI(
     title="Rice Disease LINE Chatbot Unified API v2",
-    description="API บริการตรวจจับโรคใบข้าว เวอร์ชัน 2: รองรับเกณฑ์ความมั่นใจ 90% (>=90% แจ้งโรคเดียว, <90% แจ้ง Top 3 พร้อมแนวทางและจุดสังเกต)",
+    description="API บริการตรวจจับโรคใบข้าว เวอร์ชัน 2: รองรับเกณฑ์ความมั่นใจ 80% (>=80% แจ้งโรคเดียว, <80% แจ้ง Top 3 พร้อมแนวทางและจุดสังเกต)",
     version="2.0.0"
 )
 
@@ -206,7 +206,7 @@ def generate_rag_answer(query: str, contexts: List[str]) -> str:
 
 def generate_multi_candidate_advice(candidates: List[dict], contexts: List[str]) -> str:
     """
-    [v2 พิเศษ] สร้างคำแนะนำสำหรับกรณีความมั่นใจต่ำกว่า 90%:
+    [v2 พิเศษ] สร้างคำแนะนำสำหรับกรณีความมั่นใจต่ำกว่า 80%:
     1. ให้คำแนะนำการรักษาโรคอันดับ 1 เป็นหลัก
     2. ให้จุดสังเกตรอยโรคในแปลงเพื่อช่วยแยกแยะโรคที่เข้าข่าย
     """
@@ -221,7 +221,7 @@ def generate_multi_candidate_advice(candidates: List[dict], contexts: List[str])
 
     prompt = (
         "คุณคือผู้เชี่ยวชาญด้านโรคข้าวจากกรมการข้าว ให้คำปรึกษาแก่เกษตรกรผ่าน LINE\n"
-        f"AI ตรวจพบรอยโรคที่มีความมั่นใจต่ำกว่า 90% โดยมีโอกาสเป็นโรคดังนี้:\n{cand_summary}\n\n"
+        f"AI ตรวจพบรอยโรคที่มีความมั่นใจต่ำกว่า 80% โดยมีโอกาสเป็นโรคดังนี้:\n{cand_summary}\n\n"
         "กรุณาสรุปคำแนะนำสั้นกระชับ เป็นภาษาไทยที่อ่านง่าย เหมาะกับหน้าจอ LINE แบ่งเป็น 2 หัวข้อดังนี้:\n\n"
         f"1. แนวทางรักษาและดูแลเบื้องต้น (เน้นโรคที่มีโอกาสเป็นมากที่สุดคือ: {primary_name}):\n"
         "   - สรุปแนวทางจัดการเบื้องต้นที่สำคัญ เช่น การปรับระดับน้ำ การปรับปุ๋ย หรือสารเคมีที่แนะนำตาม Context\n\n"
@@ -267,7 +267,7 @@ def health_check():
     return {
         "status": "online",
         "version": "2.0.0",
-        "mode": "Dual-Confidence Threshold (90% High Conf / Top-3 Candidates)",
+        "mode": "Dual-Confidence Threshold (80% High Conf / Top-3 Candidates)",
         "model_loaded": MODEL_PATH,
         "service": "Rice Disease LINE Chatbot API v2"
     }
@@ -276,8 +276,8 @@ def health_check():
 async def predict_image(file: UploadFile = File(...)):
     """
     [v2] วิเคราะห์รูปภาพ:
-    - ถ้าความมั่นใจสูงสุด >= 90% -> สรุปเป็นโรคเดียว (High Confidence)
-    - ถ้า 30% <= ความมั่นใจ < 90% -> รวบรวม Top 3 โรคที่มีโอกาสเป็นมากที่สุด พร้อม %
+    - ถ้าความมั่นใจสูงสุด >= 80% -> สรุปเป็นโรคเดียว (High Confidence)
+    - ถ้า 30% <= ความมั่นใจ < 80% -> รวบรวม Top 3 โรคที่มีโอกาสเป็นมากที่สุด พร้อม %
     - ถ้าความมั่นใจ < 30% -> ไม่พบรอยโรคหรือภาพไม่ชัดเจน
     """
     try:
@@ -328,14 +328,14 @@ async def predict_image(file: UploadFile = File(...)):
         primary_raw, max_conf = sorted_diseases[0] if sorted_diseases else ("healthy", 0.0)
         primary_info = DISEASE_NAME_MAP.get(primary_raw, {"th": primary_raw, "en": primary_raw, "scientific": "Unknown"})
 
-        # === ตัดสินใจตามเกณฑ์ 90% ===
-        if max_conf >= 0.90:
-            # กรณีที่ 1: มั่นใจสูงมากตั้งแต่ 90% ขึ้นไป -> รายงานโรคเดียว
+        # === ตัดสินใจตามเกณฑ์ 80% ===
+        if max_conf >= 0.80:
+            # กรณีที่ 1: มั่นใจสูงมากตั้งแต่ 80% ขึ้นไป -> รายงานโรคเดียว
             status = "detected_single"
             is_high_confidence = True
             message = (
                 f"พบรอยโรค: {primary_info['th']} (ความมั่นใจ {max_conf * 100:.1f}%)\n"
-                f"(ระดับความมั่นใจสูงเกิน 90% ระบบยืนยันผลการวินิจฉัยโรคนี้)"
+                f"(ระดับความมั่นใจสูงเกิน 80% ระบบยืนยันผลการวินิจฉัยโรคนี้)"
             )
             top_candidates = [{
                 "rank": 1,
@@ -346,8 +346,8 @@ async def predict_image(file: UploadFile = File(...)):
                 "percentage": f"{max_conf * 100:.1f}%"
             }]
 
-        elif 0.30 <= max_conf < 0.90:
-            # กรณีที่ 2: ความมั่นใจระหว่าง 30% - 89.9% -> รายงาน Top 3 โรค
+        elif 0.30 <= max_conf < 0.80:
+            # กรณีที่ 2: ความมั่นใจระหว่าง 30% - 79.9% -> รายงาน Top 3 โรค
             status = "detected_multiple"
             is_high_confidence = False
 
@@ -370,7 +370,7 @@ async def predict_image(file: UploadFile = File(...)):
             for c in top_candidates:
                 star = " (มีโอกาสเป็นมากที่สุด)" if c["rank"] == 1 else ""
                 msg_lines.append(f"{c['rank']}. {c['disease_th']} — ความเป็นไปได้ {c['percentage']}{star}")
-            msg_lines.append("\nเนื่องจากความมั่นใจยังไม่ถึง 90% รอยโรคอาจอยู่ในระยะเริ่มต้นหรือภาพถ่ายยังไม่ชัดเจน แนะนำถ่ายภาพระยะใกล้ที่มีแสงชัดเจนเพิ่มเติมเพื่อยืนยันอีกครั้งครับ")
+            msg_lines.append("\nเนื่องจากความมั่นใจยังไม่ถึง 80% รอยโรคอาจอยู่ในระยะเริ่มต้นหรือภาพถ่ายยังไม่ชัดเจน แนะนำถ่ายภาพระยะใกล้ที่มีแสงชัดเจนเพิ่มเติมเพื่อยืนยันอีกครั้งครับ")
             message = "\n".join(msg_lines)
 
         else:
@@ -420,13 +420,13 @@ async def diagnose_and_advise(file: UploadFile = File(...)):
     """
     [v2 Endpoint หลักสำหรับ n8n LINE Chatbot]:
     - ตรวจภาพใบข้าว
-    - ถ้า >= 90%: ให้คำแนะนำการรักษาของโรคเดียวอย่างเจาะลึก
-    - ถ้า 30% - 90%: แจ้ง 3 อันดับโรค + ให้แนวทางรักษาโรคอันดับ 1 + ให้จุดสังเกตเพื่อแยกแยะโรค
+    - ถ้า >= 80%: ให้คำแนะนำการรักษาของโรคเดียวอย่างเจาะลึก
+    - ถ้า 30% - 80%: แจ้ง 3 อันดับโรค + ให้แนวทางรักษาโรคอันดับ 1 + ให้จุดสังเกตเพื่อแยกแยะโรค
     """
     pred_res = await predict_image(file)
 
     if pred_res["status"] == "detected_single":
-        # มั่นใจเกิน 90%
+        # มั่นใจเกิน 80%
         disease_raw = pred_res["primary_disease"]["class_name_raw"] if "class_name_raw" in pred_res["primary_disease"] else pred_res["top_candidates"][0]["disease_id"]
         disease_th = pred_res["top_candidates"][0]["disease_th"]
         
@@ -442,7 +442,7 @@ async def diagnose_and_advise(file: UploadFile = File(...)):
         }
 
     elif pred_res["status"] == "detected_multiple" and pred_res["top_candidates"]:
-        # มั่นใจระหว่าง 30% - 90% (แสดง 3 โรค + คำแนะนำแบบรวม)
+        # มั่นใจระหว่าง 30% - 80% (แสดง 3 โรค + คำแนะนำแบบรวม)
         candidates = pred_res["top_candidates"]
         primary_disease = candidates[0]
         
