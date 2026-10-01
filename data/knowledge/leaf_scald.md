@@ -1,4 +1,4 @@
-# โรคใบวงสีน้ำตาล / โรคใบไหม้แห้ง (Leaf Scald)
+# โรคใบขอบกาบแห้ง (Leaf Scald)
 
 ## สาเหตุการเกิดโรค (Disease Cause)
 - **เชื้อสาเหตุ:** เชื้อรา *Microdochium oryzae* (หรือชื่อเดิม *Rhynchosporium oryzae*)
