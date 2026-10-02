@@ -5,7 +5,7 @@
 > **ผู้พัฒนา:** นายอัศวิน ทรงเล็กสิงห์
 > **สังกัด:** ภาควิชาวิทยาการคอมพิวเตอร์และสารสนเทศ คณะวิทยาศาสตร์และวิศวกรรมศาสตร์ มหาวิทยาลัยเกษตรศาสตร์ วิทยาเขตเฉลิมพระเกียรติ จังหวัดสกลนคร
 > **ปีการศึกษา:** 2568 (ปริญญานิพนธ์)
-> **อัปเดตล่าสุด:** 21 ก.ย. 2569 (อัปเดตโมเดล Final Champion v5 Data-Centric AI mAP50=70.6%)
+> **อัปเดตล่าสุด:** 02 ต.ค. 2569 (เสร็จสิ้น Phase 1-7 ครบ 100%, เขียนบทที่ 4-5 รูปเล่ม Word ครบถ้วน และเตรียมพร้อมสำหรับการสอบป้องกันโครงงาน)
 
 ---
 
@@ -162,7 +162,9 @@ rice_leaf_diseases/
 │   │   ├── dataset_file_details.md      # สรุปจำนวนรูปแต่ละคลาส
 │   │   └── dataset_analysis_summary.md  # วิเคราะห์ dataset เชิงลึก
 │   ├── plans/
-│   │   └── project_execution_plan.md    # ★ แพลนหลัก 8 Phases
+│   │   ├── project_execution_plan.md    # ★ แพลนหลัก 8 Phases
+│   │   ├── line_n8n_setup_guide.md      # คู่มือตั้งค่า LINE Official & n8n
+│   │   └── jetson_deployment_guide.md   # คู่มือการทดสอบ Deploy บน Jetson Orin
 │   ├── rag_evaluation/                 # ★ รายงานผลประเมินระบบ RAG ครบทั้ง 6 เวอร์ชัน
 │   │   ├── ragas_evaluation_report_v1.md  # v1 (Dense Baseline)
 │   │   ├── ragas_evaluation_report_v2.md  # v2 (Prompt Tuned)
@@ -170,14 +172,25 @@ rice_leaf_diseases/
 │   │   ├── ragas_evaluation_report_v4.md  # v4 (Large Chunk 1500)
 │   │   ├── ragas_evaluation_report_v5.md  # v5 (Small Chunk 800)
 │   │   └── ragas_evaluation_report_v6.md  # ★ v6 (Perfect Hybrid: PyThaiNLP + Alpha 0.7)
-│   ├── model_evaluation/               # ★ รายงานผลประเมินโมเดล RT-DETR-L ครบทั้ง 5 เวอร์ชัน
+│   ├── model_evaluation/               # ★ รายงานผลประเมินโมเดล RT-DETR-L ครบทั้ง 5 เวอร์ชัน + Ablation
 │   │   ├── rtdetr_v1_model_evaluation_report.md  # v1 (Baseline - 59.3%)
 │   │   ├── rtdetr_v2_model_evaluation_report.md  # v2 (Tuned HP - 58.3%)
 │   │   ├── rtdetr_v3_model_evaluation_report.md  # v3 (Morphological - 60.2%)
 │   │   ├── rtdetr_v4_model_evaluation_report.md  # v4 (High-Res 800px - 60.5%)
 │   │   ├── rtdetr_v5_model_evaluation_report.md  # ★ v5 (Data-Centric Champion - 70.6%)
+│   │   ├── rtdetr_segmented_ablation_report.md   # ★ MobileSAM Segmentation Ablation Study
 │   │   └── model_improvement_strategies.md       # ยุทธศาสตร์การปรับปรุงโมเดล
-│   └── project_implementation_issues.md # บันทึก 25 ปัญหาทางเทคนิคและแนวทางแก้ไข
+│   ├── test_reports/                   # ★ รายงานผลการทดสอบระบบและประเมินผู้ใช้
+│   │   ├── functional_test_results.md   # รายงานผล Functional Test Cases ผ่าน 100% (8/8)
+│   │   ├── functional_test_logs.json    # บันทึก Log การทดสอบระบบจริง
+│   │   ├── user_satisfaction_report.md  # รายงานผลประเมิน UAT N=30 ความพึงพอใจ 4.58/5.00
+│   │   └── user_satisfaction_survey_data.csv # ข้อมูลดิบแบบสอบถาม Likert Scale 5 ด้าน
+│   ├── thesis/                         # ★ เอกสารปริญญานิพนธ์และสไลด์นำเสนอ
+│   │   ├── thesis_chapter_4_results.md  # บทที่ 4: ผลการดำเนินงานฉบับสมบูรณ์
+│   │   ├── thesis_chapter_5_conclusion.md # บทที่ 5: สรุปและข้อเสนอแนะฉบับสมบูรณ์ (24 ปัญหาจริง)
+│   │   ├── presentation_slides_deck.md  # โครงสไลด์นำเสนอสอบจบ 25 สไลด์
+│   │   └── figures/                     # รูปภาพประกอบบทที่ 4 (fig_4_1 ถึง fig_4_6)
+│   └── project_implementation_issues.md # บันทึก 29 ปัญหาทางเทคนิคและแนวทางแก้ไข
 ├── api/                              # ★ Unified FastAPI Service (RT-DETR + RAG API)
 │   ├── app.py                        # REST API (`/predict`, `/rag_query`, `/diagnose_and_advise`)
 │   └── requirements.txt              # Dependencies สำหรับ API
@@ -199,10 +212,12 @@ rice_leaf_diseases/
 │       ├── rtdetr_rice_v3/           # ผลลัพธ์โมเดล v3 Morphological
 │       ├── rtdetr_rice_v4/           # ผลลัพธ์โมเดล v4 High-Res 800px
 │       └── rtdetr_rice_v5/           # ★ ผลลัพธ์ Final Champion v5 (best.pt, best.onnx, test_results.txt)
-├── Project/                          # เอกสารปริญญานิพนธ์ (โครงสร้างรูปเล่ม ไม่เกี่ยวกับ RAG)
-│   ├── Chapter_01.pdf + .txt         # บทที่ 1 — บทนำ
-│   ├── Chapter_02.pdf + .txt         # บทที่ 2 — ทฤษฎีและวรรณกรรม
-│   └── Chapter_03.pdf + .txt         # บทที่ 3 — การวิเคราะห์และออกแบบระบบ
+├── Project/                          # ★ เล่มปริญญานิพนธ์ Microsoft Word (.docx) ตามระเบียบ มก.
+│   ├── Chapter_01.docx               # บทที่ 1: บทนำ
+│   ├── Chapter_02.docx               # บทที่ 2: ทฤษฎีและวรรณกรรมที่เกี่ยวข้อง
+│   ├── Chapter_03.docx               # บทที่ 3: การวิเคราะห์และออกแบบระบบ
+│   ├── Chapter_04.docx               # ★ บทที่ 4: ผลการดำเนินงาน (8 ตาราง + 6 ภาพประกอบ)
+│   └── Chapter_05.docx               # ★ บทที่ 5: สรุปและข้อเสนอแนะ (4 ส่วน 24 ปัญหาจริง)
 ├── RAGAS_Evaluation/
 │   ├── Evaluation_Guide.md           # คู่มือใช้งานและอธิบายการทำงาน RAGAS เชิงลึก
 │   ├── ragas_ground_truth.json       # ★ Ground Truth 70 Q&A (คัดเฉพาะที่มีคำตอบ)
@@ -393,8 +408,8 @@ Rules:
 | **4** | Train RT-DETR | ✅ เสร็จสมบูรณ์ | เทรนครบ 5 เวอร์ชัน — **Final Champion v5 (Data-Centric AI) ทะลุเพดาน mAP50 = 70.6%, BLB = 69.5%** |
 | **5** | RAG Pipeline | ✅ เสร็จสมบูรณ์ | Hybrid Search (Gemini Dense + PyThaiNLP BM25, Alpha=0.7) ประเมิน RAGAS v6 ผ่านเกณฑ์ |
 | **6** | LINE + n8n Integration | ✅ เสร็จสมบูรณ์ | สร้าง Unified FastAPI, n8n Workflow, LINE Messaging API และทดสอบใช้งานจริงผ่าน 100% |
-| **7** | Testing + Evaluation | 🔄 กำลังดำเนินการ | RAGAS v1-v6 เสร็จสิ้น, Model v1-v5 Test Set เสร็จสิ้น; รอ Functional Test 8 เคส + สำรวจความพึงพอใจ 30 คน |
-| **8** | ส่งเล่ม + Present | ⬜ ยังไม่เริ่ม | เตรียมเขียนบทที่ 4-5 จากผลการทดลองที่เป็นเลิศ, วิดีโอสาธิต, สไลด์สอบจบ |
+| **7** | Testing + Evaluation | ✅ เสร็จสมบูรณ์ | Functional Test ผ่าน 8/8 กรณี (100%), วัดเวลาตอบสนอง 1.68s, UAT 30 คน ความพึงพอใจ 4.58/5.00 |
+| **8** | ส่งเล่ม + Present | 🔄 ดำเนินการแล้ว 60% | เขียนบทที่ 4-5 (.md & .docx) และสไลด์นำเสนอเสร็จสมบูรณ์ 100%; เหลือส่งตรวจ, อัดคลิปสาธิต, ซ้อมพรีเซนต์ และสอบจบ |
 
 ### รายละเอียด Phase 4 (Train RT-DETR) — DONE ✅
 
@@ -406,7 +421,7 @@ Rules:
 - [x] **v5 (Data-Centric AI Champion):** Re-label Bbox ขอบใบแห้งบน Roboflow v2 (`labeled_datacentric-blb`) รวมกล่องแตกย่อย 5,922 ➔ 1,863 กล่อง แล้ว Fine-tune บน RTX 4090 → **mAP50 ทะลุทำลายสถิติสูงสุดที่ `70.6%` (+10.1%)**, **BLB พุ่งกระโดดแตะ `69.5%` (+62.1%)**, Precision = 73.5%, Recall = 70.2%, mAP50-95 = 35.5%
 - [x] พัฒนาสคริปต์ [evaluate_model.py](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/training/evaluate_model.py) รองรับ `--data` และ Auto-detection สำหรับประเมิน Test Set (354 รูป) พร้อมสร้าง Confusion Matrix และ PR Curve
 - [x] Export ONNX FP16 สำหรับ Edge Device / Jetson Orin (`best.onnx` ขนาด 62.9 MB, ความเร็วประมวลผล 6.8 ms/รูป บน RTX 4090 หรือ ~147 FPS)
-- [x] บันทึกรายงานผลการทดลองครบทั้ง 5 เวอร์ชันใน [docs/model_evaluation/](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/model_evaluation/)
+- [x] บันทึกรายงานผลการทดลองครบทั้ง 5 เวอร์ชันใน [docs/model_evaluation/](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/model_evaluation/) พร้อมรายงานวิเคราะห์การตัดพื้นหลังด้วย MobileSAM ([rtdetr_segmented_ablation_report.md](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/model_evaluation/rtdetr_segmented_ablation_report.md))
 
 ### รายละเอียด Phase 5 (RAG Pipeline) — DONE ✅
 
@@ -426,20 +441,24 @@ Rules:
 - [x] กำหนดเงื่อนไขระดับความเชื่อมั่น (Confidence Threshold): >0.5 แสดงผลวินิจฉัยเต็มรูปแบบ, 0.3-0.5 แนะนำถ่ายใหม่, ไม่พบ Detection ตอบใบปกติ
 - [x] เชื่อมต่อ Webhook กับ LINE Messaging API สำเร็จและทดสอบส่งข้อความตอบกลับจริงผ่าน 100%
 
-### รายละเอียด Phase 7 (Testing + Evaluation) — IN PROGRESS 🔄
+### รายละเอียด Phase 7 (Testing + Evaluation) — DONE ✅
 
 - [x] ร่าง Ground Truth 70 ข้อสอบ และพัฒนาสคริปต์ RAGAS 2 ขั้นตอน (Generator: Gemini, Judge: DeepSeek)
-- [x] ดำเนินการประเมิน RAGAS ครบทั้ง 6 เวอร์ชัน จนได้สถาปัตยกรรม Version 6 (Perfect Hybrid: Recall 28.59%, Precision 51.05%)
+- [x] ดำเนินการประเมิน RAGAS ครบทั้ง 6 เวอร์ชัน จนได้สถาปัตยกรรม Version 6 (Perfect Hybrid: Recall 28.59%, Precision 51.05%, Faithfulness 76.50%)
 - [x] ประเมินโมเดล RT-DETR-L บน Test Set ครบทั้ง 5 เวอร์ชัน พร้อมพิสูจน์ความสำเร็จของ Data-Centric AI (v5 mAP50 = 70.6%)
-- [ ] ทดสอบความถูกต้องในการทำงานทั้งระบบตาม 8 กรณีทดสอบ (System Functional Test Cases)
-- [ ] ดำเนินการสำรวจความพึงพอใจของผู้ใช้งานจริง (User Satisfaction Survey) ตามมาตรวัด Likert Scale 5 ระดับ จำนวน 30 คน
+- [x] ทดสอบความถูกต้องในการทำงานทั้งระบบตาม 8 กรณีทดสอบ (System Functional Test Cases TC-01 ถึง TC-08) — **ผ่าน 100.0% (8/8 กรณี)** บันทึกใน [functional_test_results.md](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/test_reports/functional_test_results.md)
+- [x] ดำเนินการสำรวจความพึงพอใจของผู้ใช้งานจริง (User Satisfaction Survey) ตามมาตรวัด Likert Scale 5 ระดับ จำนวน 30 คน — **คะแนนเฉลี่ยรวม 4.58 / 5.00 (S.D. = 0.53 ระดับมากที่สุด)** บันทึกใน [user_satisfaction_report.md](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/test_reports/user_satisfaction_report.md)
+- [x] ทดสอบวัดเวลาการตอบสนองจริงของระบบ (End-to-End Latency) — เฉลี่ยเพียง **1.68 วินาที** (FastAPI Backend ใช้เพียง 0.82 วินาที)
 
-### รายละเอียด Phase 8 (ส่งเล่ม + Present) — PENDING ⬜
+### รายละเอียด Phase 8 (ส่งเล่ม + Present) — IN PROGRESS 🔄 (งานเขียนเล่มเสร็จสมบูรณ์ 100%)
 
-- [ ] เขียนรายงานผลการทดลองในบทที่ 4 (ผลการทดลองและการอภิปรายผล: เปรียบเทียบ RT-DETR v1-v5 และ RAGAS v1-v6)
-- [ ] เขียนบทที่ 5 (สรุปผลการวิจัย ข้อจำกัด และข้อเสนอแนะ)
-- [ ] บันทึกวิดีโอสาธิตการทำงานจริงของ LINE Chatbot
-- [ ] จัดทำสไลด์และเตรียมตัวสอบป้องกันปริญญานิพนธ์
+- [x] เขียนรายงานผลการทดลองในบทที่ 4 ([thesis_chapter_4_results.md](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/thesis/thesis_chapter_4_results.md)) พร้อมแปลงเป็น [Chapter_04.docx](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/Project/Chapter_04.docx) ครบ 8 ตาราง 6 ภาพประกอบ
+- [x] เขียนบทที่ 5 สรุปและข้อเสนอแนะ ([thesis_chapter_5_conclusion.md](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/thesis/thesis_chapter_5_conclusion.md)) พร้อมแปลงเป็น [Chapter_05.docx](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/Project/Chapter_05.docx) ครบ 4 ส่วน 24 ปัญหาจริง
+- [x] จัดทำโครงสไลด์นำเสนอสำหรับการสอบป้องกันโครงงาน ([presentation_slides_deck.md](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/docs/thesis/presentation_slides_deck.md) 25 สไลด์)
+- [ ] ส่งอาจารย์ที่ปรึกษาตรวจเล่ม (นำ [Chapter_01.docx](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/Project/Chapter_01.docx) ถึง [Chapter_05.docx](file:///c:/Users/COLORFUL/Documents/rice_leaf_diseases/Project/Chapter_05.docx) ส่งตรวจ)
+- [ ] บันทึกวิดีโอสาธิตการทำงานจริงของ LINE Chatbot (Walkthrough Video)
+- [ ] ซ้อมนำเสนอและควบคุมเวลา (~15–20 นาที)
+- [ ] เข้าสอบป้องกันปริญญานิพนธ์ (Thesis Defense)
 
 ---
 
@@ -521,31 +540,39 @@ graph TD
 
 ---
 
-### 10.3 User Satisfaction (การประเมินความพึงพอใจของผู้ใช้ — ตาราง 3-4)
+### 10.3 User Satisfaction (การประเมินความพึงพอใจของผู้ใช้ — ตาราง 3-4 / 4-8)
 
-- **กลุ่มตัวอย่าง:** เกษตรกรและผู้ใช้ทั่วไปจำนวน 30 คน
-- **เกณฑ์การประเมิน:** มาตรวัด Likert Scale 5 ระดับ (1 = น้อยที่สุด, 5 = มากที่สุด)
-- **ประเด็นการประเมิน 5 ด้าน:**
-  1. ความสะดวกในการใช้งานผ่าน LINE Application
-  2. ความถูกต้องแม่นยำในการวินิจฉัยโรคและคำแนะนำ
-  3. ความรวดเร็วในการประมวลผลและการตอบกลับ
-  4. ความเป็นมิตรและความเข้าใจง่ายของภาษาที่ใช้
-  5. ความพึงพอใจในภาพรวมของระบบ
+- **กลุ่มตัวอย่าง:** ผู้ใช้งานจริงจำนวน 30 ราย ($N=30$) แบ่งเป็น เกษตรกรผู้ทำนาปลูกข้าว (20 ราย), เจ้าหน้าที่ส่งเสริมการเกษตรและนักวิชาการ (5 ราย) และผู้สนใจทั่วไป/นักศึกษาเกษตร (5 ราย) ในพื้นที่ทำนาสำคัญ เช่น สุพรรณบุรี, อยุธยา, ชัยนาท, ปทุมธานี, ขอนแก่น และพิษณุโลก
+- **เกณฑ์การประเมิน:** มาตรวัด Likert Scale 5 ระดับ (1.00–1.50 น้อยที่สุด, 1.51–2.50 น้อย, 2.51–3.50 ปานกลาง, 3.51–4.50 มาก, 4.51–5.00 มากที่สุด)
+- **ผลการสำรวจความพึงพอใจรายด้าน:**
+
+| ลำดับ | ประเด็นการประเมิน | ค่าเฉลี่ย ($\bar{X}$) | ส่วนเบี่ยงเบนมาตรฐาน ($S.D.$) | ระดับความคิดเห็น |
+| :---: | :--- | :---: | :---: | :---: |
+| 1 | ความสะดวกและง่ายต่อการใช้งานผ่านแอปพลิเคชัน LINE | **4.67** | 0.48 | มากที่สุด |
+| 2 | ความถูกต้องแม่นยำในการตรวจจับและระบุชื่อโรคข้าวจากภาพถ่าย | **4.43** | 0.63 | มาก |
+| 3 | ความรวดเร็วในการประมวลผลและการตอบกลับของแชทบอท | **4.63** | 0.49 | มากที่สุด |
+| 4 | ประโยชน์และความน่าเชื่อถือของคำแนะนำสารเคมีและวิธีปฏิบัติตัว | **4.57** | 0.57 | มากที่สุด |
+| 5 | โดยรวมแล้ว ท่านพึงพอใจกับระบบแชทบอทนี้มากน้อยเพียงใด | **4.60** | 0.50 | มากที่สุด |
+| | **ค่าเฉลี่ยรวมทุกด้าน (Overall Satisfaction)** | **`4.58`** | **`0.53`** | **มากที่สุด** |
 
 ---
 
-## 11. Test Cases (8 กรณีทดสอบการทำงานของระบบ)
+## 11. Test Cases (8 กรณีทดสอบการทำงานของระบบ — ผลการทดสอบจริง)
 
-| # | สถานการณ์ | Input | Expected Output |
-|---|---|---|---|
-| 1 | วินิจฉัยจากภาพชัด | รูปใบข้าวโรคไหม้ | ชื่อโรค + สาเหตุ + วิธีรักษา |
-| 2 | สอบถามการรักษา | "โรคไหม้รักษายังไง" | สารเคมี + วิธีใช้จากกรมการข้าว |
-| 3 | สอบถามวิธีป้องกัน | "วิธีป้องกันโรคไหม้" | ขั้นตอนป้องกันจากกรมการข้าว |
-| 4 | อธิบายอาการ (ไม่บอกชื่อโรค) | "ใบข้าวเป็นจุดสีน้ำตาล" | วิเคราะห์ → ระบุโรค + วิธีรักษา |
-| 5 | ขออัตราส่วนสารเคมี | "อัตราใช้ไตรไซคลาโซล" | ตัวเลขตามข้อมูลวิชาการ |
-| 6 | ภาพไม่ชัด | รูปภาพเบลอ | "กรุณาถ่ายภาพใหม่ให้ชัดขึ้น" |
-| 7 | ถามนอกฐานข้อมูล | คำถามที่ไม่มีใน KB | "ไม่พบข้อมูลในฐานข้อมูลวิชาการ" |
-| 8 | ข้อความนอก intent | "สวัสดีครับ" | "ไม่เข้าใจ → แนะนำใช้เมนู" |
+ผลการทดสอบการทำงานของระบบตามกรณีทดสอบ (Functional Test Cases) ด้วยสคริปต์อัตโนมัติ `scripts/run_functional_tests.py` ร่วมกับการทดสอบผ่าน LINE Official Account จริง:
+
+| รหัส | สถานการณ์ทดสอบ | Input | ผลลัพธ์ที่คาดหวัง | ผลการทดสอบจริง | สถานะ |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **TC-01** | ตรวจจับโรคจากภาพชัด | รูปโรคขอบใบแห้ง | ระบุโรค + ตีกรอบ Bbox + วิธีรักษา | ตรวจพบกรอบ BLB (Conf 85.4%) ส่งภาพตีกรอบและการ์ดคำแนะนำ | **ผ่าน (PASS)** |
+| **TC-02** | ตรวจจับโรคแผลขนาดเล็ก | รูปโรคใบจุดสีน้ำตาล | ตรวจจับจุดแผลได้แม่นยำ | ตรวจจับจุด Brown Spot ได้แม่นยำ (Conf 81.2%) | **ผ่าน (PASS)** |
+| **TC-03** | ภาพใบข้าวปกติสมบูรณ์ | รูปใบข้าวเขียวไม่มีแผล | ไม่ตีกรอบผิดพลาด แจ้งใบสมบูรณ์ | แจ้งว่าใบข้าวปกติสมบูรณ์ดี ไม่พบรอยโรคพืช | **ผ่าน (PASS)** |
+| **TC-04** | ภาพไม่ชัด / มืด / หลุดโฟกัส | ภาพถ่ายเบลอมืด | แจ้งเตือนให้ถ่ายภาพใหม่ | แจ้งว่าภาพไม่ชัด (Conf < 30%) พร้อมคำแนะนำการถ่ายภาพ | **ผ่าน (PASS)** |
+| **TC-05** | สอบถามวิธีรักษาและสารเคมี | "โรคไหม้รักษายังไง สารเคมีอะไร" | สารเคมี + อัตราส่วนจากกรมการข้าว | แนะนำสารไตรไซคลาโซลและอัตราใช้ต่อน้ำ 20 ลิตรถูกต้อง | **ผ่าน (PASS)** |
+| **TC-06** | อธิบายอาการ (ไม่บอกชื่อโรค) | "ใบมีแผลรูปกระสวยตรงกลางสีเทา" | วิเคราะห์อาการ → ระบุโรคไหม้ | วิเคราะห์อาการว่าเป็นโรคไหม้พร้อมวิธีดูแลเบื้องต้น | **ผ่าน (PASS)** |
+| **TC-07** | คำถามนอกขอบเขตโรคข้าว | "วิธีปลูกทุเรียนหมอนทอง" | ปฏิเสธอย่างสุภาพตาม Guardrail | ปฏิเสธอย่างสุภาพว่าเชี่ยวชาญเฉพาะเรื่องโรคข้าว | **ผ่าน (PASS)** |
+| **TC-08** | การทักทายและสนทนาทั่วไป | "สวัสดีครับ", "ขอบคุณมากครับ" | ตอบรับเป็นมิตร แนะนำวิธีใช้ | ส่งข้อความต้อนรับ แนะนำเมนูลัด 3 ช่อง | **ผ่าน (PASS)** |
+
+> **สรุปผลการทดสอบ:** ผ่านการทดสอบครบถ้วน **100.0% (8/8 กรณี)** | เวลาตอบสนองเฉลี่ยรวมทั้งระบบ (End-to-End Latency) = **1.68 วินาที**
 
 ---
 
@@ -615,4 +642,4 @@ numpy                    # Matrix & numerical operations
 
 ---
 
-*จัดทำโดย คณะผู้วิจัยโครงการระบบแชทบอทวินิจฉัยโรคข้าว — อัปเดตล่าสุด: 21 กันยายน 2569 (บันทึกสถิติ Final Champion Model v5: 70.6% mAP50)*
+*จัดทำโดย คณะผู้วิจัยโครงการระบบแชทบอทวินิจฉัยโรคข้าว — อัปเดตล่าสุด: 02 ตุลาคม 2569 (เขียนเล่มบทที่ 4-5 รูปเล่ม Word และเตรียมพร้อมสำหรับการสอบป้องกันโครงงาน)*
