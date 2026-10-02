@@ -12,11 +12,22 @@ import string
 import json
 import time
 import requests
+import re
 from collections import Counter
 from dotenv import load_dotenv
 
 # โหลด API Keys จาก .env
 load_dotenv()
+
+def sanitize_line_text(text: str) -> str:
+    """ลบเครื่องหมายดอกจัน Markdown (** และ *) ออกให้เกลี้ยงสำหรับแสดงผลบน LINE"""
+    if not text:
+        return text
+    # 1. ลบ ** (Bold ใน Markdown)
+    text = text.replace('**', '')
+    # 2. ลบ * ที่เหลือทั้งหมด
+    text = text.replace('*', '')
+    return text.strip()
 
 app = FastAPI(
     title="Rice Disease LINE Chatbot Unified API v2",
@@ -179,7 +190,9 @@ def generate_rag_answer(query: str, contexts: List[str]) -> str:
         "คำแนะนำในการตอบ:\n"
         "1. ตอบคำถามโดยอ้างอิงจาก Context ที่ให้เท่านั้น สรุปกระชับ เข้าใจง่าย เหมาะสำหรับอ่านบน LINE\n"
         "2. ห้ามสร้างข้อมูลเอง (No Hallucination) และห้ามใช้อิโมจิ (Emoji) ในคำตอบเด็ดขาด\n"
-        "3. หากคำถามเป็นเรื่องทั่วไป คำถามนอกเรื่อง หรือไม่พบข้อมูลใน Context ที่เกี่ยวข้องกับข้าวและการเกษตร:\n"
+        "3. ห้ามใช้เครื่องหมายดอกจัน ** หรือ * ในการเน้นคำเด็ดขาด\n"
+        "4. หากมีการแจกแจงรายการหรือขั้นตอน ให้ใช้ตัวเลขลำดับ 1. 2. 3. ชัดเจน\n"
+        "5. หากคำถามเป็นเรื่องทั่วไป คำถามนอกเรื่อง หรือไม่พบข้อมูลใน Context ที่เกี่ยวข้องกับข้าวและการเกษตร:\n"
         "   - ห้ามตอบแค่ 'ไม่ทราบ' สั้นๆ เด็ดขาด\n"
         "   - ให้ตอบอย่างสุภาพว่า: 'ขออภัยครับ ระบบนี้เป็น AI ผู้ช่วยวินิจฉัยและให้คำปรึกษาเรื่องโรคข้าวจากกรมการข้าวโดยเฉพาะ จึงสามารถตอบได้เฉพาะเรื่องโรคข้าวและการดูแลรักษาเท่านั้นครับ'\n"
         "   - พร้อมให้คำแนะนำวิธีการใช้งาน เช่น สามารถส่งรูปถ่ายใบข้าวเพื่อให้ระบบช่วยตรวจจับรอยโรค หรือพิมพ์สอบถามเกี่ยวกับโรคข้าว เช่น 'วิธีรักษาโรคขอบใบแห้ง' หรือ 'อาการโรคใบไหม้'\n\n"
@@ -195,7 +208,8 @@ def generate_rag_answer(query: str, contexts: List[str]) -> str:
             resp = requests.post(url, json=payload, timeout=20)
             if resp.status_code == 200:
                 data = resp.json()
-                return data['candidates'][0]['content']['parts'][0]['text']
+                raw_answer = data['candidates'][0]['content']['parts'][0]['text']
+                return sanitize_line_text(raw_answer)
             elif resp.status_code == 429:
                 time.sleep(2)
                 continue
@@ -232,7 +246,8 @@ def generate_multi_candidate_advice(candidates: List[dict], contexts: List[str])
         "2. จุดสังเกตในแปลงเพื่อแยกแยะโรค:\n"
         "   - อธิบายสั้นๆ ข้อละ 1 บรรทัด ว่าแผลของแต่ละโรคข้างต้นสังเกตต่างกันอย่างไรในแปลงจริง\n\n"
         "ท้ายข้อความให้บอกว่า 'หากตรวจสอบแล้วสงสัยโรคใดเป็นพิเศษ สามารถพิมพ์ชื่อโรคเข้ามาเพื่อขอข้อมูลละเอียดได้ครับ'\n"
-        "ห้ามแต่งข้อมูลเท็จ ตอบตาม Context ที่ให้เท่านั้น และห้ามใส่อิโมจิ (Emoji) ในข้อความเด็ดขาด\n\n"
+        "ห้ามแต่งข้อมูลเท็จ ตอบตาม Context ที่ให้เท่านั้น และห้ามใส่อิโมจิ (Emoji) ในข้อความเด็ดขาด\n"
+        "ห้ามใช้เครื่องหมายดอกจัน ** หรือ * ในการเน้นคำเด็ดขาด และให้ใช้ตัวเลขลำดับ 1. 2. 3. ชัดเจน\n\n"
         f"Context:\n{ctx}"
     )
 
@@ -245,7 +260,8 @@ def generate_multi_candidate_advice(candidates: List[dict], contexts: List[str])
             resp = requests.post(url, json=payload, timeout=20)
             if resp.status_code == 200:
                 data = resp.json()
-                return data['candidates'][0]['content']['parts'][0]['text']
+                raw_answer = data['candidates'][0]['content']['parts'][0]['text']
+                return sanitize_line_text(raw_answer)
             elif resp.status_code == 429:
                 time.sleep(2)
                 continue
@@ -400,8 +416,44 @@ async def predict_image(file: UploadFile = File(...)):
 @app.post("/rag_query")
 def rag_query(req: RAGQueryRequest):
     try:
-        # === ดักจับ Intent ขอวิธีการใช้งานแชทบอท (จากปุ่ม Rich Menu หรือพิมพ์ถาม) ===
+        # === 1. ดักจับ Intent คำทักทาย (Greeting - ตามกรณีทดสอบ TC-08) ===
         q_clean = req.question.strip().lower()
+        disease_or_question_terms = ["โรค", "ไหม้", "ขอบใบ", "จุดสีน้ำตาล", "กาบใบ", "รักษา", "อาการ", "ยา", "สาร", "ป้องกัน", "กำจัด", "กี่กรัม", "อัตรา"]
+        is_greeting = (
+            q_clean in ["สวัสดี", "สวัสดีครับ", "สวัสดีค่ะ", "หวัดดี", "หวัดดีครับ", "หวัดดีค่ะ", "ดีครับ", "ดีค่ะ", "hello", "hi", "hey"]
+            or (q_clean.startswith("สวัสดี") and not any(k in q_clean for k in disease_or_question_terms))
+        )
+        if is_greeting:
+            greeting_answer = (
+                "สวัสดีครับ ยินดีต้อนรับสู่ระบบผู้ช่วยวินิจฉัยและให้คำปรึกษาโรคข้าว\n\n"
+                "ผมพร้อมช่วยตรวจวินิจฉัยและให้คำแนะนำโรคข้าว 5 โรคสำคัญครับ ท่านสามารถ:\n"
+                "- กดปุ่ม 'ถ่ายภาพ' หรือ 'ส่งภาพ' ใบข้าว เพื่อตรวจหาโรคและดูรอยโรค\n"
+                "- พิมพ์สอบถามเกี่ยวกับโรคข้าว เช่น 'โรคไหม้รักษายังไง' หรือ 'อาการโรคขอบใบแห้ง'\n\n"
+                "มีข้อสงสัยหรือต้องการตรวจโรคข้าว สามารถส่งรูปหรือพิมพ์ถามเข้ามาได้เลยครับ"
+            )
+            return {
+                "success": True,
+                "question": req.question,
+                "disease_id_filtered": None,
+                "answer": greeting_answer,
+                "contexts": []
+            }
+
+        # === 2. ดักจับ Intent คำขอบคุณ (Gratitude - ตามกรณีทดสอบ TC-08) ===
+        if any(t in q_clean for t in ["ขอบคุณ", "ขอบพระคุณ", "thank", "thx"]):
+            thanks_answer = (
+                "ยินดีเป็นอย่างยิ่งครับ หากพบปัญหาโรคข้าวในแปลงนาหรือมีข้อสงสัยเพิ่มเติม "
+                "สามารถถ่ายภาพหรือพิมพ์สอบถามเข้ามาได้ตลอดเวลานะครับ ขอให้ผลผลิตข้าวเจริญงอกงามครับ"
+            )
+            return {
+                "success": True,
+                "question": req.question,
+                "disease_id_filtered": None,
+                "answer": thanks_answer,
+                "contexts": []
+            }
+
+        # === 3. ดักจับ Intent ขอวิธีการใช้งานแชทบอท (จากปุ่ม Rich Menu หรือพิมพ์ถาม) ===
         is_user_guide = (
             q_clean in ["วิธีใช้", "วิธีใช้งาน", "วิธีการใช้งาน", "คู่มือ", "คู่มือการใช้งาน", "ใช้งานยังไง", "ใช้ยังไง", "help"]
             or any(t in q_clean for t in [
