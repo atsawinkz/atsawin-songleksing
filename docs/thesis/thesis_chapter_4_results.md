@@ -36,7 +36,7 @@
 ├── 4.6 ผลการทดสอบฟังก์ชันการทำงานของระบบด้วยกรณีทดสอบ (Test Cases)
 │   └── ตารางบันทึกผลการทดสอบระบบ 8 กรณี (TC-01 ถึง TC-08)
 ├── 4.7 ผลการวัดประสิทธิภาพความเร็วในการทำงานของระบบ (Latency Performance)
-│   └── การแจกแจงเวลาประมวลผลรายส่วน (RTX 4090 GPU vs แผนทดสอบบน Jetson AGX Orin)
+│   └── การแจกแจงเวลาประมวลผลรายส่วน (RTX 4090 GPU)
 └── 4.8 ผลการประเมินความพึงพอใจและการยอมรับของผู้ใช้งาน (User Acceptance Testing)
     ├── 4.8.1 ระเบียบวิธีและเกณฑ์การแปลผลคะแนน Likert Scale 5 ระดับ
     └── 4.8.2 ตารางสรุปผลการประเมินความพึงพอใจ 5 ด้าน จากกลุ่มตัวอย่าง 30 ราย
@@ -258,12 +258,11 @@
 | :--- | :--- | :---: | :---: | :---: |
 | **1. LINE Webhook Inbound Transmission** | LINE Messaging API Network | $120.5 \pm 15.2$ ms | 7.17% | ทดสอบแล้ว ✅ |
 | **2. n8n Routing & Payload Parsing** | Docker Container (Node.js) | $45.0 \pm 8.4$ ms | 2.68% | ทดสอบแล้ว ✅ |
-| **3.1 RT-DETR-L v5 Vision Inference (GPU)** | **NVIDIA RTX 4090 Workstation** | **`6.8 ± 0.4 ms`** | **0.40%** | **ทดสอบแล้ว ✅** |
-| **3.2 RT-DETR-L v5 Vision Inference (Edge)**| **NVIDIA Jetson AGX Orin (INT8)**| **`[เว้นไว้สำหรับทดสอบบนบอร์ดจริง: คาดหมาย ~12-15 ms]`** | **-** | **⏳ เฟสถัดไป** |
+| **3. RT-DETR-L v5 Vision Inference (GPU)** | **NVIDIA RTX 4090 Workstation** | **`6.8 ± 0.4 ms`** | **0.40%** | **ทดสอบแล้ว ✅** |
 | **4. Hybrid Vector Search (Pinecone + BM25)** | Pinecone Cloud + PyThaiNLP | $45.2 \pm 6.1$ ms | 2.69% | ทดสอบแล้ว ✅ |
 | **5. LLM Answer Synthesis** | Google Gemini 2.5 Flash API | $1,120.0 \pm 180.5$ ms | 66.67% | ทดสอบแล้ว ✅ |
 | **6. Flex Message Assembly & LINE Dispatch** | n8n + LINE Outbound API | $342.5 \pm 42.1$ ms | 20.39% | ทดสอบแล้ว ✅ |
-| **เวลารวมทั้งหมดของระบบ (End-to-End บน GPU)** | **Full Pipeline Execution** | **`1.68 ± 0.25 วินาที`** | **100.0%** | **พร้อมใช้งานจริง ✅** |
+| **เวลารวมทั้งหมดของระบบ (End-to-End)** | **Full Pipeline Execution** | **`1.68 ± 0.25 วินาที`** | **100.0%** | **พร้อมใช้งานจริง ✅** |
 
 *ผลการทดสอบแสดงว่าระบบมีเวลาตอบสนองรวมเฉลี่ยบนเซิร์ฟเวอร์เพียง **1.68 วินาที** ซึ่งถือว่ารวดเร็วสำหรับการใช้งานผ่านแอปพลิเคชันแชทบนโทรศัพท์มือถือ*
 
