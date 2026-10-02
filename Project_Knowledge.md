@@ -159,10 +159,10 @@ rice_leaf_diseases/
 │   └── labeled_datacentric-blb/      # ★ Roboflow export v2 (8,468 รูป — Re-labeled BLB Bbox)
 ├── docs/
 │   ├── dataset/
-│   │   ├── รายละเอียดไฟล์.md        # สรุปจำนวนรูปแต่ละคลาส
-│   │   └── สรุปการวิเคราะห์dataset.md # วิเคราะห์ dataset เชิงลึก
+│   │   ├── dataset_file_details.md      # สรุปจำนวนรูปแต่ละคลาส
+│   │   └── dataset_analysis_summary.md  # วิเคราะห์ dataset เชิงลึก
 │   ├── plans/
-│   │   └── แพลนดำเนินงาน.md         # ★ แพลนหลัก 8 Phases
+│   │   └── project_execution_plan.md    # ★ แพลนหลัก 8 Phases
 │   ├── rag_evaluation/                 # ★ รายงานผลประเมินระบบ RAG ครบทั้ง 6 เวอร์ชัน
 │   │   ├── ragas_evaluation_report_v1.md  # v1 (Dense Baseline)
 │   │   ├── ragas_evaluation_report_v2.md  # v2 (Prompt Tuned)
