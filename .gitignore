@@ -25,3 +25,6 @@ venv/
 .vscode/
 .idea/
 *.swp
+
+# Scratch & Temporary artifacts
+scratch/
