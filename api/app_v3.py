@@ -121,7 +121,7 @@ def get_pinecone_index():
                 pc = Pinecone(api_key=pinecone_key)
                 _PINECONE_INDEX = pc.Index("rice-knowledge")
         except Exception as e:
-            print(f"[v3 Warning] ไม่สามารถเชื่อมต่อ Pinecone: {e}")
+            print(f"[v3 Warning] Failed to connect to Pinecone: {e}")
     return _PINECONE_INDEX
 
 def get_bm25_stats():
@@ -133,7 +133,7 @@ def get_bm25_stats():
                 with open(bm25_stats_path, 'r', encoding='utf-8') as f:
                     _BM25_STATS = json.load(f)
             except Exception as e:
-                print(f"[v3 Warning] ไม่สามารถโหลด BM25 stats: {e}")
+                print(f"[v3 Warning] Failed to load BM25 stats: {e}")
     return _BM25_STATS
 
 def get_emb(text: str) -> List[float]:
@@ -152,10 +152,10 @@ def get_emb(text: str) -> List[float]:
             data = resp.json()
             return data.get('embedding', {}).get('values', [])
         else:
-            print(f"[v3 Warning] Gemini Embedding API ตอบกลับ HTTP {resp.status_code}")
+            print(f"[v3 Warning] Gemini Embedding API returned HTTP {resp.status_code}")
             return []
     except Exception as e:
-        print(f"[v3 Warning] เกิดข้อผิดพลาดขณะสร้าง Embedding: {e}")
+        print(f"[v3 Warning] Error generating embedding: {e}")
         return []
 
 def detect_disease_from_query(query: str):
@@ -224,23 +224,22 @@ def retrieve_rag_context(query: str, disease_id_override: Optional[str] = None, 
         contexts = [m['metadata']['text'] for m in res.get('matches', [])]
         return contexts, disease_id
     except Exception as e:
-        print(f"[v3 Warning] ไม่สามารถสืบค้น Pinecone ได้: {e}")
+        print(f"[v3 Warning] Pinecone query failed: {e}")
         return [], disease_id
 
 
 # === 3. Multi-Model Gemini LLM Fallback (v3 Core Feature) ===
 CANDIDATE_GEMINI_MODELS = [
-    "gemini-2.5-flash",       # โมเดลหลัก (ตรงตามเล่มปริญญานิพนธ์)
-    "gemini-3.1-flash-lite",  # โมเดลสำรอง 1 (โควตาสูง 500 RPD, เร็ว เสถียร ไม่ติด 503)
-    "gemini-3.5-flash-lite",  # โมเดลสำรอง 2 (โควตาสูง 500 RPD)
-    "gemini-2.0-flash"        # โมเดลสำรอง 3
+    "gemini-2.5-flash",       # Primary model (consistent with thesis documentation)
+    "gemini-3.1-flash-lite",  # Backup 1 (high quota 500 RPD, fast, resilient)
+    "gemini-3.5-flash-lite",  # Backup 2 (high quota 500 RPD)
+    "gemini-2.0-flash"        # Backup 3
 ]
 
 def format_emergency_context_fallback(contexts: Optional[List[str]]) -> str:
     """
-    กรณีฉุกเฉินที่ Google Gemini ขัดข้องทุกโมเดล:
-    นำข้อความการรักษาจากฐานข้อมูล Pinecone (คู่มือกรมการข้าว) มาจัดส่งให้ผู้ใช้ทันที
-    เพื่อป้องกันไม่ให้ API พังเป็น 500 หรือทำให้ LINE นิ่งสนิท
+    Emergency Graceful Fallback when all Gemini models are down:
+    Returns treatment advice directly from Pinecone (Rice Department manual).
     """
     if not contexts:
         return (
@@ -256,14 +255,14 @@ def format_emergency_context_fallback(contexts: Optional[List[str]]) -> str:
 
 def call_gemini_with_fallback(prompt: str, contexts: Optional[List[str]] = None) -> str:
     """
-    [v3 Core] ยิงคำขอไปยัง Gemini พร้อมระบบ Fallback หลายระดับ:
-    1. ลองเรียก Gemini 2.5 Flash เป็นหลักก่อน
-    2. หากเจอ 503 (Overloaded) หรือ 429 (Quota เต็ม) จะสลับไปเรียก Gemini 3.1 Flash Lite / 3.5 Flash Lite ทันที
-    3. หากทุกโมเดลขัดข้อง จะใช้ Graceful Fallback ดึงข้อมูลจาก Pinecone แทน เพื่อไม่ให้เกิด Error 500
+    [v3 Core] Multi-Model Cascading Fallback:
+    1. Try Gemini 2.5 Flash as primary model.
+    2. If HTTP 503 (Overloaded) or HTTP 429 (Quota limit) occurs, switch to Gemini 3.1 / 3.5 Flash Lite immediately.
+    3. If all models fail, graceful fallback to Pinecone context.
     """
     api_key = os.getenv('GEMINI_API_KEY', '')
     if not api_key:
-        print("[v3 Warning] ไม่พบ GEMINI_API_KEY ในตัวแปรสภาพแวดล้อม")
+        print("[v3 Warning] GEMINI_API_KEY not found in environment variables")
         return format_emergency_context_fallback(contexts)
 
     payload = {
@@ -278,30 +277,29 @@ def call_gemini_with_fallback(prompt: str, contexts: Optional[List[str]] = None)
             if resp.status_code == 200:
                 data = resp.json()
                 raw_answer = data['candidates'][0]['content']['parts'][0]['text']
-                print(f"[v3 RAG] สำเร็จ: ประมวลผลคำตอบด้วยโมเดล {model_name}")
+                print(f"[v3 RAG Success] Answer generated using model: {model_name}")
                 return sanitize_line_text(raw_answer)
 
             status = resp.status_code
-            print(f"[v3 RAG] โมเดล {model_name} ตอบกลับรหัส HTTP {status}")
+            print(f"[v3 RAG] Model {model_name} returned HTTP {status}")
 
-            # หากเป็น 503 (Overload/Service Unavailable) หรือ 429 (Quota/Rate Limit เต็ม)
-            # สลับไปใช้โมเดลสำรองตัวถัดไปทันทีอัตโนมัติ (เช่น 3.1 Flash Lite / 3.5 Flash Lite)
+            # If 503 (Overload) or 429 (Quota limit) -> immediately fallback to next model
             if status in [503, 429]:
-                print(f"[v3 RAG Fallback] ตรวจพบ HTTP {status} บน {model_name} (ติด 503 หรือโควตาเต็ม) -> สลับไปใช้โมเดลสำรองถัดไปทันที...")
+                print(f"[v3 RAG Fallback] Detected HTTP {status} on {model_name} (503 Overloaded or 429 Quota Exceeded) -> Switching to backup model immediately...")
                 continue
             else:
-                print(f"[v3 RAG Fallback] โมเดล {model_name} ตอบกลับรหัส HTTP {status} -> สลับไปยังโมเดลถัดไป...")
+                print(f"[v3 RAG Fallback] Model {model_name} returned HTTP {status} -> Switching to next candidate model...")
                 continue
 
         except requests.exceptions.Timeout:
-            print(f"[v3 RAG Timeout] โมเดล {model_name} หมดเวลาเชื่อมต่อ (เกิน 12 วินาที) -> สลับไปใช้โมเดลสำรองถัดไปทันที...")
+            print(f"[v3 RAG Timeout] Model {model_name} timed out (>12s) -> Switching to backup model immediately...")
             continue
         except Exception as e:
-            print(f"[v3 RAG Exception] ข้อผิดพลาดขณะเรียก {model_name}: {e} -> สลับไปยังโมเดลสำรอง...")
+            print(f"[v3 RAG Exception] Error calling {model_name}: {e} -> Switching to backup model...")
             continue
 
-    # หากลองทุกโมเดลแล้วยังไม่สำเร็จ ให้ใช้ข้อมูลจาก Pinecone โดยตรง
-    print("[v3 RAG Emergency Fallback] ไม่สามารถเชื่อมต่อ Gemini ได้ทุกโมเดล กำลังใช้ข้อมูลจาก Pinecone สำรอง")
+    # Emergency fallback if all candidate models fail
+    print("[v3 RAG Emergency Fallback] All Gemini models unreachable. Using Rice Department knowledge base from Pinecone directly.")
     return format_emergency_context_fallback(contexts)
 
 
