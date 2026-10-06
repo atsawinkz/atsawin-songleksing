@@ -108,18 +108,55 @@ DISEASE_KEYWORDS = {
     "sheath_blight": ["กาบใบแห้ง", "sheath blight", "กาบใบ", "rhizoctonia"],
 }
 
+_PINECONE_INDEX = None
+_BM25_STATS = None
+
+def get_pinecone_index():
+    global _PINECONE_INDEX
+    if _PINECONE_INDEX is None:
+        try:
+            from pinecone import Pinecone
+            pinecone_key = os.getenv('PINECONE_API_KEY', '')
+            if pinecone_key:
+                pc = Pinecone(api_key=pinecone_key)
+                _PINECONE_INDEX = pc.Index("rice-knowledge")
+        except Exception as e:
+            print(f"[v3 Warning] ไม่สามารถเชื่อมต่อ Pinecone: {e}")
+    return _PINECONE_INDEX
+
+def get_bm25_stats():
+    global _BM25_STATS
+    if _BM25_STATS is None:
+        bm25_stats_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'bm25_stats.json')
+        if os.path.exists(bm25_stats_path):
+            try:
+                with open(bm25_stats_path, 'r', encoding='utf-8') as f:
+                    _BM25_STATS = json.load(f)
+            except Exception as e:
+                print(f"[v3 Warning] ไม่สามารถโหลด BM25 stats: {e}")
+    return _BM25_STATS
+
 def get_emb(text: str) -> List[float]:
-    """สร้าง Dense Vector 3072 มิติผ่าน Gemini Embedding REST API"""
+    """สร้าง Dense Vector 3072 มิติผ่าน Gemini Embedding REST API พร้อมระบบ Error Handling"""
     api_key = os.getenv('GEMINI_API_KEY', '')
+    if not api_key:
+        return []
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key={api_key}"
     payload = {
         "model": "models/gemini-embedding-001",
         "content": {"parts": [{"text": text}]}
     }
-    resp = requests.post(url, json=payload, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    return data.get('embedding', {}).get('values', [])
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get('embedding', {}).get('values', [])
+        else:
+            print(f"[v3 Warning] Gemini Embedding API ตอบกลับ HTTP {resp.status_code}")
+            return []
+    except Exception as e:
+        print(f"[v3 Warning] เกิดข้อผิดพลาดขณะสร้าง Embedding: {e}")
+        return []
 
 def detect_disease_from_query(query: str):
     query_lower = query.lower()
@@ -130,30 +167,27 @@ def detect_disease_from_query(query: str):
     return None
 
 def retrieve_rag_context(query: str, disease_id_override: Optional[str] = None, top_k: int = 5):
-    from pinecone import Pinecone
     import mmh3
     import pythainlp
 
-    pinecone_key = os.getenv('PINECONE_API_KEY', '')
-    pc = Pinecone(api_key=pinecone_key)
-    idx = pc.Index("rice-knowledge")
+    disease_id = disease_id_override or detect_disease_from_query(query)
+    idx = get_pinecone_index()
+    if not idx:
+        return [], disease_id
 
     dense_vector = get_emb(query)
 
-    # Sparse BM25 vector calculation
+    # Sparse BM25 vector calculation (ใช้ Cache ใน RAM)
     sparse_vector = None
-    bm25_stats_path = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'bm25_stats.json')
-    if os.path.exists(bm25_stats_path):
-        with open(bm25_stats_path, 'r', encoding='utf-8') as f:
-            stats = json.load(f)
-
+    stats = get_bm25_stats()
+    if stats:
         query_clean = query.translate(str.maketrans('', '', string.punctuation)).lower()
         tokens = pythainlp.word_tokenize(query_clean, keep_whitespace=False)
         tokens = [t for t in tokens if len(t) > 1 or t.isdigit()]
         tf = Counter(tokens)
 
-        doc_freq = stats['doc_freq']
-        num_docs = stats['num_docs']
+        doc_freq = stats.get('doc_freq', {})
+        num_docs = stats.get('num_docs', 1)
 
         indices = []
         values = []
@@ -169,21 +203,29 @@ def retrieve_rag_context(query: str, disease_id_override: Optional[str] = None, 
         if indices:
             sparse_vector = {"indices": indices, "values": values}
 
-    disease_id = disease_id_override or detect_disease_from_query(query)
-
     query_params = {
-        "vector": dense_vector,
         "top_k": top_k,
         "include_metadata": True
     }
+    if dense_vector and len(dense_vector) == 3072:
+        query_params["vector"] = dense_vector
+    elif sparse_vector:
+        query_params["vector"] = [0.0] * 3072
+    else:
+        return [], disease_id
+
     if sparse_vector:
         query_params["sparse_vector"] = sparse_vector
     if disease_id:
         query_params["filter"] = {"disease_id": {"$eq": disease_id}}
 
-    res = idx.query(**query_params)
-    contexts = [m['metadata']['text'] for m in res.get('matches', [])]
-    return contexts, disease_id
+    try:
+        res = idx.query(**query_params)
+        contexts = [m['metadata']['text'] for m in res.get('matches', [])]
+        return contexts, disease_id
+    except Exception as e:
+        print(f"[v3 Warning] ไม่สามารถสืบค้น Pinecone ได้: {e}")
+        return [], disease_id
 
 
 # === 3. Multi-Model Gemini LLM Fallback (v3 Core Feature) ===
@@ -338,7 +380,13 @@ async def predict_image(file: UploadFile = File(...)):
     """
     try:
         contents = await file.read()
+        if len(contents) > 20 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="ไฟล์มีขนาดใหญ่เกินไป (รองรับขนาดไม่เกิน 20MB)")
+        if len(contents) == 0:
+            raise HTTPException(status_code=400, detail="ไฟล์ภาพว่างเปล่า (0 bytes)")
         image = Image.open(io.BytesIO(contents)).convert("RGB")
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=400, detail="ไฟล์ที่อัปโหลดไม่ใช่รูปภาพที่ถูกต้อง (รองรับ JPEG, PNG)")
 
@@ -448,6 +496,19 @@ async def predict_image(file: UploadFile = File(...)):
 def rag_query(req: RAGQueryRequest):
     try:
         q_clean = req.question.strip().lower()
+        if not q_clean:
+            return {
+                "success": True,
+                "question": req.question,
+                "disease_id_filtered": None,
+                "answer": (
+                    "สวัสดีครับ ยินดีต้อนรับสู่ระบบผู้ช่วยวินิจฉัยและให้คำปรึกษาโรคข้าว\n\n"
+                    "ท่านสามารถใช้งานได้ดังนี้ครับ:\n"
+                    "- กดปุ่ม 'ถ่ายภาพตรวจโรคข้าว' หรือ 'ส่งภาพตรวจโรคข้าว' เพื่อตรวจหาโรคและดูรอยโรค\n"
+                    "- พิมพ์สอบถามเกี่ยวกับโรคข้าว เช่น 'วิธีรักษาโรคขอบใบแห้ง' หรือ 'อาการโรคใบไหม้'"
+                ),
+                "contexts": []
+            }
         disease_or_question_terms = ["โรค", "ไหม้", "ขอบใบ", "จุดสีน้ำตาล", "กาบใบ", "รักษา", "อาการ", "ยา", "สาร", "ป้องกัน", "กำจัด", "กี่กรัม", "อัตรา"]
         is_greeting = (
             q_clean in ["สวัสดี", "สวัสดีครับ", "สวัสดีค่ะ", "หวัดดี", "หวัดดีครับ", "หวัดดีค่ะ", "ดีครับ", "ดีค่ะ", "hello", "hi", "hey"]
