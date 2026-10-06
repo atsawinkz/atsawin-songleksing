@@ -238,8 +238,9 @@ CANDIDATE_GEMINI_MODELS = [
 
 def format_emergency_context_fallback(contexts: Optional[List[str]]) -> str:
     """
-    Emergency Graceful Fallback when all Gemini models are down:
-    Returns treatment advice directly from Pinecone (Rice Department manual).
+    ระบบรับมือฉุกเฉิน (Graceful Fallback) เมื่อโมเดล Gemini ขัดข้องทุกโมเดล:
+    ดึงคำแนะนำการรักษาจากฐานข้อมูล Pinecone (คู่มือกรมการข้าว) ส่งให้ผู้ใช้โดยตรง
+    เพื่อป้องกันไม่ให้ API พังเป็น Error 500 หรือทำให้บอท LINE นิ่งสนิท
     """
     if not contexts:
         return (
@@ -255,10 +256,10 @@ def format_emergency_context_fallback(contexts: Optional[List[str]]) -> str:
 
 def call_gemini_with_fallback(prompt: str, contexts: Optional[List[str]] = None) -> str:
     """
-    [v3 Core] Multi-Model Cascading Fallback:
-    1. Try Gemini 2.5 Flash as primary model.
-    2. If HTTP 503 (Overloaded) or HTTP 429 (Quota limit) occurs, switch to Gemini 3.1 / 3.5 Flash Lite immediately.
-    3. If all models fail, graceful fallback to Pinecone context.
+    [v3 Core] ยิงคำขอไปยัง Gemini พร้อมระบบสลับโมเดลอัตโนมัติหลายระดับ:
+    1. ลองเรียก Gemini 2.5 Flash เป็นโมเดลหลักก่อน (ตรงตามเอกสารวิจัยในเล่ม)
+    2. หากเจอ HTTP 503 (Overloaded) หรือ HTTP 429 (โควตาเต็ม) จะสลับไปใช้ Gemini 3.1 Flash Lite / 3.5 Flash Lite ทันที
+    3. หากขัดข้องทุกโมเดล จะใช้ Emergency Fallback ดึงข้อมูลจาก Pinecone ทดแทน เพื่อไม่ให้เกิด Error 500
     """
     api_key = os.getenv('GEMINI_API_KEY', '')
     if not api_key:
