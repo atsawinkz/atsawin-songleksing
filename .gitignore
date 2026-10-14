@@ -20,6 +20,12 @@ experiments/segmentation_study/runs/
 *.bin
 
 # ==========================================
+# Thesis Monograph & University Defense Materials
+# ==========================================
+Project/
+docs/thesis/
+
+# ==========================================
 # Environment Variables & Credentials (Secrets)
 # ==========================================
 .env

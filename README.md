@@ -160,19 +160,17 @@ rice-disease-rag-chatbot/
 │       ├── leaf_blast.md
 │       ├── leaf_scald.md
 │       └── sheath_blight.md
-├── docs/                           # Research, documentation & defense materials
+├── docs/                           # Research & evaluation documentation
 │   ├── dataset/                    # Dataset balance and resolution statistics
 │   ├── model_evaluation/           # RT-DETR v1–v5 reports & MobileSAM ablation
 │   ├── rag_evaluation/             # RAGAS evaluation reports v1–v6
-│   ├── test_reports/               # Functional test case logs (TC-01 to TC-08)
-│   └── thesis/                     # Presentation slides, chapters & defense Q&A
+│   └── test_reports/               # Functional test case logs (TC-01 to TC-08)
 ├── live_test_demo/                 # Defense demonstration kit (23 test images)
 │   ├── chatbot_test_questions.txt  # Quick copy-paste test questions
 │   ├── README_test_guide.md        # 7-step live defense demo guide
 │   └── test_images/                # 5 diseases, healthy, non-rice, and blurry images
 ├── n8n/                            # Workflow automation
 │   └── rice_bot_workflow.json      # LINE Bot n8n workflow export
-├── Project/                        # Full thesis monograph chapters (.docx / .pdf)
 ├── RAGAS_Evaluation/               # Automated RAG evaluation benchmark suite
 │   ├── 01_generate_answers.py      # LLM answer generation
 │   ├── 02_evaluate_scores.py       # Judge LLM scoring
