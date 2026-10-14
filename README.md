@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🌾 Rice Disease Diagnosis & Treatment Chatbot (RAG + RT-DETR)
+# Rice Disease Diagnosis & Treatment Chatbot (RAG + RT-DETR)
 ### ระบบแชทบอทวินิจฉัยโรคข้าวและแนะนำวิธีการรักษาผ่านแอปพลิเคชัน LINE ด้วยเทคนิค RAG
 
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
@@ -17,29 +17,29 @@
 
 ---
 
-## 📖 Table of Contents
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Model Performance & Evaluation](#-model-performance--evaluation)
-  - [RT-DETR-L Detection Benchmark (v1–v5)](#1-rt-detr-l-detection-benchmark-v1v5)
-  - [Data-Centric AI Breakthrough on Bacterial Leaf Blight](#2-data-centric-ai-breakthrough-on-bacterial-leaf-blight)
-  - [RAG Evaluation via RAGAS (v1–v6)](#3-rag-evaluation-via-ragas-v1v6)
-- [Repository Structure](#-repository-structure)
-- [Quick Start & Installation](#-quick-start--installation)
+## Table of Contents
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Model Performance & Evaluation](#model-performance--evaluation)
+  - [1. RT-DETR-L Detection Benchmark (v1–v5)](#1-rt-detr-l-detection-benchmark-v1v5)
+  - [2. Data-Centric AI Breakthrough on Bacterial Leaf Blight](#2-data-centric-ai-breakthrough-on-bacterial-leaf-blight)
+  - [3. RAG Evaluation via RAGAS (v1–v6)](#3-rag-evaluation-via-ragas-v1v6)
+- [Repository Structure](#repository-structure)
+- [Quick Start & Installation](#quick-start--installation)
   - [1. Prerequisites](#1-prerequisites)
   - [2. Clone Repository & Setup Environment](#2-clone-repository--setup-environment)
   - [3. Configure Environment Variables](#3-configure-environment-variables)
   - [4. Build Vector DB Index](#4-build-vector-db-index)
   - [5. Run FastAPI Backend](#5-run-fastapi-backend)
-- [API Endpoints](#-api-endpoints)
-- [Live Demo Test Kit](#-live-demo-test-kit)
-- [Academic Information & Citation](#-academic-information--citation)
-- [License](#-license)
+- [API Endpoints](#api-endpoints)
+- [Live Demo Test Kit](#live-demo-test-kit)
+- [Academic Information & Citation](#academic-information--citation)
+- [License](#license)
 
 ---
 
-## 🌟 Overview
+## Overview
 
 Rice is Thailand's most vital staple crop and agricultural export. However, fungal and bacterial diseases frequently cause severe yield losses. Traditional diagnosis relies on scarce agricultural extension officers or dense academic handbooks that farmers cannot easily navigate.
 
@@ -51,7 +51,7 @@ This project introduces a **production-ready conversational AI system** that all
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 * **Real-Time Object Detection (RT-DETR-L):** Bypasses NMS degradation issues common in traditional CNN/YOLO detectors, achieving an average inference latency of **6.8 ms/image** on NVIDIA RTX 4090.
 * **Data-Centric AI Optimization:** Relabeled overfragmented bounding boxes (5,922 fragmented boxes $\rightarrow$ 1,863 coherent boxes), driving Bacterial Leaf Blight detection from **7.42% to 69.50% (+62.1%)** and overall mAP@0.5 to **70.6%**.
@@ -62,11 +62,11 @@ This project introduces a **production-ready conversational AI system** that all
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 flowchart TD
-    User([🌾 Farmer / User]) <-->|Photo or Question| LINE[LINE Official Account]
+    User([Farmer / User]) <-->|Photo or Question| LINE[LINE Official Account]
     LINE <-->|Webhook Inbound / Flex Message Outbound| N8N[n8n Workflow Automation]
     
     subgraph AI_Backend [FastAPI Server / GPU Engine]
@@ -104,7 +104,7 @@ flowchart TD
 
 ---
 
-## 📊 Model Performance & Evaluation
+## Model Performance & Evaluation
 
 ### 1. RT-DETR-L Detection Benchmark (v1–v5)
 Evaluated on an independent, unseen test set of **354 images (576 bounding box instances)**:
@@ -141,11 +141,11 @@ Evaluated across 70 standardized Thai agronomic Ground Truth Q&As using DeepSeek
 | **v3 (Hybrid Regex)** | Added BM25 with Regex Tokenizer | 18.5% | 44.1% | 74.3% | 53.0% |
 | **v4 (Large Chunk)** | Chunk=1500 / Overlap=300 | 19.9% | 49.2% | **78.5%** | **59.1%** |
 | **v5 (Small Chunk)** | Chunk=800 / Overlap=150 | 17.2% | 43.8% | 72.1% | 51.2% |
-| **v6 (Champion)** | **PyThaiNLP + BM25 + Alpha=0.7 + Metadata** | **`28.59%`** 🟢 | **`51.05%`** 🟢 | **`76.50%`** | **`56.85%`** |
+| **v6 (Champion)** | **PyThaiNLP + BM25 + Alpha=0.7 + Metadata** | **`28.59%`** | **`51.05%`** | **76.50%** | **56.85%** |
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```text
 rice-disease-rag-chatbot/
@@ -192,7 +192,7 @@ rice-disease-rag-chatbot/
 
 ---
 
-## ⚡ Quick Start & Installation
+## Quick Start & Installation
 
 ### 1. Prerequisites
 - **Python:** 3.10 or 3.11
@@ -250,7 +250,7 @@ Interactive Swagger documentation will be available at: `http://localhost:8000/d
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |:---:|:---|:---|
@@ -261,7 +261,7 @@ Interactive Swagger documentation will be available at: `http://localhost:8000/d
 
 ---
 
-## 🧪 Live Demo Test Kit
+## Live Demo Test Kit
 
 The repository includes a curated test kit in [live_test_demo/](live_test_demo/) designed for live demonstration:
 * **23 Sample Images** organized into 8 folders:
@@ -273,7 +273,7 @@ The repository includes a curated test kit in [live_test_demo/](live_test_demo/)
 
 ---
 
-## 🎓 Academic Information & Citation
+## Academic Information & Citation
 
 * **Title (EN):** Rice Disease Diagnosis and Treatment Recommendation Chatbot on LINE Application using RAG Technique
 * **Title (TH):** ระบบแชทบอทวินิจฉัยโรคข้าวและแนะนำวิธีการรักษาผ่านแอปพลิเคชันไลน์ด้วยเทคนิค RAG
@@ -296,7 +296,7 @@ The repository includes a curated test kit in [live_test_demo/](live_test_demo/)
 
 ---
 
-## 📄 License
+## License
 
 This project is open-source and distributed under the terms of the [MIT License](LICENSE).  
-Copyright (c) 2026 Atsawin Songleksing (นายอัศวิน ทรงเล็กสิงห์).
+Copyright (c) 2026 Atsawin Songleksing.
