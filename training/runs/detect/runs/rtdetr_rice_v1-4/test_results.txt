@@ -1,7 +1,0 @@
---- Evaluation Results on Test Set ---
-Model:     runs/detect/runs/rtdetr_rice_v1-4/weights/best.pt
-mAP50-95:  0.3077
-mAP50:     0.5926
-Precision: 0.5646
-Recall:    0.6094
------------------------------------------
