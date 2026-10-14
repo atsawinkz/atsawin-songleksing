@@ -1,30 +1,104 @@
-# Dataset
+# ==========================================
+# Datasets (Large Files & Raw Images)
+# ==========================================
 data/raw/
 data/processed/
 data/labeled/
 data/labeled_datacentric-blb/
 experiments/segmentation_study/dataset_segmented/
 
-# Training Runs & Model Weights
+# ==========================================
+# Training Runs, Checkpoints & Model Weights
+# ==========================================
 runs/
 training/runs/
 experiments/segmentation_study/runs/
 *.pt
+*.pth
 *.onnx
 *.engine
+*.bin
 
-# Python
+# ==========================================
+# Environment Variables & Credentials (Secrets)
+# ==========================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ==========================================
+# Python Virtual Environments & Cache
+# ==========================================
+venv/
+.venv/
+env/
+ENV/
 __pycache__/
 *.py[cod]
 *$py.class
-*.zip
-venv/
-.env
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.mypy_cache/
 
-# IDE
+# ==========================================
+# Node / Workflow Tools
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==========================================
+# IDE & Code Editors
+# ==========================================
 .vscode/
 .idea/
 *.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+.kilo/
 
-# Scratch & Temporary artifacts
+# ==========================================
+# Operating System Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# ==========================================
+# Temporary, Scratch & Log Files
+# ==========================================
 scratch/
+*.tmp
+*.log
+~$*.docx
+~$*.pptx
+~$*.xlsx
+*.zip
+*.tar.gz
